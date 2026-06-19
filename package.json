@@ -11,7 +11,8 @@
     "mcp": "pnpm --filter @ariadne-worklanes/mcp-server start",
     "mcp:dev": "pnpm --filter @ariadne-worklanes/mcp-server dev",
     "test": "pnpm build && pnpm -r --if-present test",
-    "typecheck": "pnpm --filter @ariadne-worklanes/core build && pnpm -r typecheck"
+    "typecheck": "pnpm --filter @ariadne-worklanes/core build && pnpm -r typecheck",
+    "start": "pnpm --filter @ariadne-worklanes/dashboard start"
   },
   "keywords": [
     "agents",

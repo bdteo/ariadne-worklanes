@@ -28,11 +28,20 @@ pnpm build
 
 ## Run The Dashboard
 
+For development with hot reload:
+
 ```bash
 pnpm dev
 ```
 
-The dashboard starts on [http://localhost:3737](http://localhost:3737).
+For a stable local dashboard after building:
+
+```bash
+pnpm build
+pnpm start
+```
+
+The dashboard starts on [http://localhost:3737](http://localhost:3737). When an agent starts it for a long-running handoff, run it detached with stdout/stderr redirected, for example in tmux, so request logs cannot block on an abandoned Codex terminal pipe.
 
 By default it reads worklanes from `~/.ariadne-worklanes/worklanes` when present, then falls back to the repo-local `worklanes/` sample directory. Override the directory with:
 
