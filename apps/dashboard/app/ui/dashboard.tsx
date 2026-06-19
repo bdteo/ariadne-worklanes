@@ -24,6 +24,15 @@ const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ];
 
+const filterOptions: { value: StatusFilter; label: string }[] = [
+  { value: 'open', label: 'Open' },
+  { value: 'stale', label: 'Stale' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'complete', label: 'Complete' },
+  { value: 'archived', label: 'Archived' },
+  { value: 'all', label: 'All' },
+];
+
 const openStatuses = new Set<DashboardLane['status']>(['planned', 'active', 'waiting', 'blocked']);
 const defaultDashboardState: DashboardUrlState = { filter: 'open', sort: 'stale', query: '', compact: false };
 const statusFilters = new Set<StatusFilter>(['all', 'open', 'stale', 'blocked', 'complete', 'archived']);
@@ -91,6 +100,10 @@ function writeDashboardUrlState(state: DashboardUrlState) {
   if (nextUrl !== currentUrl) {
     window.history.replaceState(null, '', nextUrl);
   }
+}
+
+function formatMetricLabel(label: string): string {
+  return label.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 export function Dashboard() {
@@ -171,20 +184,25 @@ export function Dashboard() {
     return sortLanes(filterLanes(payload?.lanes ?? [], filter, query), sort);
   }, [filter, payload?.lanes, query, sort]);
 
-  const overview = useMemo(() => {
+  const counts = useMemo(() => {
     const all = payload?.lanes ?? [];
     const open = all.filter((lane) => openStatuses.has(lane.status)).length;
     const active = all.filter((lane) => lane.status === 'active').length;
-    const blocked = all.filter((lane) => lane.status === 'blocked' || lane.stale).length;
+    const stale = all.filter((lane) => lane.stale).length;
+    const blocked = all.filter((lane) => lane.status === 'blocked').length;
+    const attention = all.filter((lane) => lane.status === 'blocked' || lane.stale).length;
     const complete = all.filter((lane) => lane.status === 'complete').length;
+    const archived = all.filter((lane) => lane.status === 'archived').length;
 
-    return [
-      { label: 'Open', value: open, tone: 'open' },
-      { label: 'Active', value: active, tone: 'active' },
-      { label: 'Needs eyes', value: blocked, tone: blocked > 0 ? 'attention' : 'quiet' },
-      { label: 'Complete', value: complete, tone: 'complete' },
-    ];
+    return { active, all: all.length, archived, attention, blocked, complete, open, stale };
   }, [payload?.lanes]);
+
+  const mastheadStats = [
+    { label: 'Open', value: counts.open, tone: 'open' },
+    { label: 'Active', value: counts.active, tone: 'active' },
+    { label: 'Needs eyes', value: counts.attention, tone: counts.attention > 0 ? 'attention' : 'quiet' },
+    { label: 'Done', value: counts.complete, tone: 'complete' },
+  ];
 
   const lastPoll = payload ? `${formatElapsed(payload.generatedAt)} ago` : 'waiting';
 
@@ -200,72 +218,84 @@ export function Dashboard() {
 
   return (
     <main className={`shell ${compact ? 'compactShell' : ''}`}>
-      <header className="topbar">
-        <div className="heroCopy">
-          <p className="eyebrow">Ariadne Worklanes</p>
-          <h1>Agent work, kept visible.</h1>
+      <header className="masthead">
+        <div className="brandPanel">
+          <div>
+            <p className="eyebrow">Ariadne Worklanes</p>
+            <h1>Worklanes</h1>
+          </div>
           <div className="heroMeta" aria-label="Dashboard status">
             <span>{payload ? `${payload.lanes.length} lanes` : 'Loading lanes'}</span>
             <span>{payload?.malformed.length ?? 0} malformed</span>
             <span>Polled {lastPoll}</span>
           </div>
         </div>
+
+        <div className="statRail" aria-label="Worklane totals">
+          {mastheadStats.map((item) => (
+            <div className={`statChip ${item.tone}`} key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
         <aside className="sourcePanel" aria-label="Worklane source">
-          <span>Source directory</span>
+          <span>Source</span>
           <code>{payload?.sourceDir ?? 'Resolving source directory...'}</code>
         </aside>
       </header>
 
-      <section className="overviewGrid" aria-label="Worklane totals">
-        {overview.map((item) => (
-          <div className={`overviewCard ${item.tone}`} key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-          </div>
-        ))}
-      </section>
-
-      <section className="toolbar" aria-label="Dashboard controls">
-        <div className="searchBox">
-          <input
-            aria-label="Search worklanes"
-            placeholder="Search lanes, scopes, next actions"
-            value={query}
-            onChange={(event) => updateUrlState({ query: event.target.value })}
-          />
-        </div>
-        <select aria-label="Filter worklanes" value={filter} onChange={(event) => updateUrlState({ filter: event.target.value as StatusFilter })}>
-          <option value="all">All</option>
-          <option value="open">Open</option>
-          <option value="stale">Stale</option>
-          <option value="blocked">Blocked</option>
-          <option value="complete">Complete</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select aria-label="Sort worklanes" value={sort} onChange={(event) => updateUrlState({ sort: event.target.value as SortMode })}>
-          <option value="stale">Stale first</option>
-          <option value="updated">Recently updated</option>
-          <option value="started">Recently started</option>
-          <option value="progress">Progress</option>
-          <option value="title">Title</option>
-        </select>
-        <div className="themeSwitch" role="group" aria-label="Theme mode">
-          {themeOptions.map((option) => (
+      <section className="controlDeck" aria-label="Dashboard controls">
+        <div className="statusTabs" role="group" aria-label="Filter worklanes">
+          {filterOptions.map((option) => (
             <button
-              aria-pressed={theme === option.value}
-              className={theme === option.value ? 'selected' : ''}
+              aria-pressed={filter === option.value}
+              className={filter === option.value ? 'selected' : ''}
               key={option.value}
-              onClick={() => setTheme(option.value)}
+              onClick={() => updateUrlState({ filter: option.value })}
               type="button"
             >
-              {option.label}
+              <span>{option.label}</span>
+              <strong>{counts[option.value]}</strong>
             </button>
           ))}
         </div>
-        <label className="toggle compactToggle">
-          <input type="checkbox" checked={compact} onChange={(event) => updateUrlState({ compact: event.target.checked })} />
-          Compact
-        </label>
+
+        <div className="toolbar">
+          <div className="searchBox">
+            <input
+              aria-label="Search worklanes"
+              placeholder="Search lanes"
+              value={query}
+              onChange={(event) => updateUrlState({ query: event.target.value })}
+            />
+          </div>
+          <select aria-label="Sort worklanes" value={sort} onChange={(event) => updateUrlState({ sort: event.target.value as SortMode })}>
+            <option value="stale">Stale first</option>
+            <option value="updated">Recently updated</option>
+            <option value="started">Recently started</option>
+            <option value="progress">Progress</option>
+            <option value="title">Title</option>
+          </select>
+          <div className="themeSwitch" role="group" aria-label="Theme mode">
+            {themeOptions.map((option) => (
+              <button
+                aria-pressed={theme === option.value}
+                className={theme === option.value ? 'selected' : ''}
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <label className="toggle compactToggle">
+            <input type="checkbox" checked={compact} onChange={(event) => updateUrlState({ compact: event.target.checked })} />
+            Compact
+          </label>
+        </div>
       </section>
 
       {error ? <p className="errorBanner">{error}</p> : null}
@@ -306,14 +336,16 @@ export function Dashboard() {
                     <p className="scope">{lane.scope ?? lane.repo ?? lane.id}</p>
                     <h2>{lane.title}</h2>
                   </div>
-                  <span className={`status ${lane.stale ? 'stale' : lane.status}`}>{lane.stale ? 'Stale' : statusLabels[lane.status]}</span>
+                  <div className="cardStatus">
+                    <span className={`status ${lane.stale ? 'stale' : lane.status}`}>{lane.stale ? 'Stale' : statusLabels[lane.status]}</span>
+                    <strong>{Math.round(lane.progressPercent)}%</strong>
+                  </div>
                 </div>
 
                 {lane.summary && !compact ? <p className="summary">{lane.summary}</p> : null}
 
                 <div className="progressRow" style={progressStyle}>
                   <div className="progressCopy">
-                    <strong>{Math.round(lane.progressPercent)}%</strong>
                     <span>
                       {lane.progress.current} / {lane.progress.total} {lane.progress.unit}
                     </span>
@@ -342,7 +374,7 @@ export function Dashboard() {
                   <div className="metrics">
                     {[...lane.baseline.slice(0, 2), ...lane.metrics.slice(0, 4)].slice(0, 4).map((metric) => (
                       <div key={`${lane.id}-${metric.label}`}>
-                        <span>{metric.label}</span>
+                        <span>{formatMetricLabel(metric.label)}</span>
                         <strong>{String(metric.value)}{metric.unit ? ` ${metric.unit}` : ''}</strong>
                       </div>
                     ))}

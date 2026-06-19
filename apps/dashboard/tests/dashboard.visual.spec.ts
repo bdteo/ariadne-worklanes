@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('renders worklane cards without obvious layout breakage', async ({ page }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Agent work, kept visible.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Worklanes' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Archived release' })).toHaveCount(0);
   await expect(page.getByRole('article').filter({ hasText: 'broken.json' }).getByText('Malformed', { exact: true })).toBeVisible();
@@ -26,14 +26,16 @@ test('opens a lane detail page with timeline and raw JSON', async ({ page }, tes
 
 test('syncs dashboard filters with the URL', async ({ page }) => {
   await page.goto('/?status=archived&sort=title&q=release&compact=1');
-  await expect(page.getByLabel('Filter worklanes')).toHaveValue('archived');
+  const filters = page.getByRole('group', { name: 'Filter worklanes' });
+
+  await expect(filters.getByRole('button', { name: /Archived/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('Sort worklanes')).toHaveValue('title');
   await expect(page.getByLabel('Search worklanes')).toHaveValue('release');
   await expect(page.getByLabel('Compact')).toBeChecked();
   await expect(page.getByRole('article').filter({ hasText: 'Archived release' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toHaveCount(0);
 
-  await page.getByLabel('Filter worklanes').selectOption('all');
+  await filters.getByRole('button', { name: /All/ }).click();
   await expect(page).toHaveURL(/status=all/);
 
   await page.getByLabel('Sort worklanes').selectOption('progress');
