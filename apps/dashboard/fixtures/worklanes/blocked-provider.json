@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "blocked-provider",
+  "title": "Provider recovery",
+  "summary": "Waiting for a provider cooldown before retrying.",
+  "scope": "Recovery",
+  "status": "blocked",
+  "startedAt": "2026-06-19T07:00:00.000Z",
+  "updatedAt": "2026-06-19T08:00:00.000Z",
+  "staleAfterMinutes": 120,
+  "progress": { "current": 2, "total": 8, "unit": "batches" },
+  "baseline": [{ "label": "Missing previews", "value": 9408 }],
+  "metrics": [{ "label": "Current missing", "value": 5805 }],
+  "milestones": [],
+  "events": [
+    {
+      "id": "e-blocked",
+      "type": "blocked",
+      "at": "2026-06-19T08:00:00.000Z",
+      "message": "Provider cooldown."
+    }
+  ],
+  "evidence": [],
+  "warnings": [],
+  "nextAction": "Retry after cooldown.",
+  "blocker": "Provider cooldown",
+  "links": [],
+  "notes": []
+}

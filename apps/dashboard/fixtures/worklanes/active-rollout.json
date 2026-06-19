@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "id": "active-rollout",
+  "title": "Active rollout",
+  "summary": "Production deploy and smoke test lane.",
+  "scope": "Production",
+  "owner": "Boris",
+  "repo": "bdteo/ariadne-worklanes",
+  "status": "active",
+  "startedAt": "2026-06-19T08:00:00.000Z",
+  "updatedAt": "2026-06-19T09:45:00.000Z",
+  "staleAfterMinutes": 240,
+  "progress": { "current": 3, "total": 5, "unit": "steps" },
+  "baseline": [{ "label": "Start", "value": "branch clean" }],
+  "metrics": [{ "label": "Checks passed", "value": 3, "unit": "of 5" }],
+  "milestones": [
+    {
+      "id": "m-started",
+      "title": "Started deploy",
+      "status": "complete",
+      "at": "2026-06-19T08:10:00.000Z",
+      "summary": "Deploy command accepted."
+    }
+  ],
+  "events": [
+    {
+      "id": "e-created",
+      "type": "created",
+      "at": "2026-06-19T08:00:00.000Z",
+      "message": "Started rollout lane."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-pr",
+      "label": "Pull request",
+      "url": "https://github.com/bdteo/ariadne-worklanes",
+      "kind": "pr",
+      "at": "2026-06-19T09:00:00.000Z"
+    }
+  ],
+  "warnings": [],
+  "nextAction": "Run local smoke checks.",
+  "links": [],
+  "notes": ["Fixture lane for visual QA."]
+}

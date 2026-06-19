@@ -1,55 +1,36 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import path from 'node:path';
-
+import {
+  addMilestone,
+  archiveWorklane,
+  attachEvidence,
+  clearBlocker,
+  completeWorklane,
+  createWorklane,
+  defaultWorklaneDir,
+  listWorklanes,
+  metricSchema,
+  readWorklane,
+  setBlocker,
+  summarizeWorklane,
+  updateWorklane,
+  worklaneStatuses,
+  writeWorklane,
+} from '@ariadne-worklanes/core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as z from 'zod/v4';
 
-type WorklaneStatus = 'planned' | 'active' | 'waiting' | 'blocked' | 'complete' | 'cancelled';
-
-type Metric = {
-  label: string;
-  value: string | number | boolean | null;
-  unit?: string;
-};
-
-type Worklane = {
-  schemaVersion: 1;
-  id: string;
-  title: string;
-  summary?: string;
-  scope?: string;
-  status: WorklaneStatus;
-  startedAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  progress: {
-    current: number;
-    total: number;
-    unit: string;
-  };
-  baseline?: Metric[];
-  metrics?: Metric[];
-  nextAction?: string;
-  blocker?: string;
-  links?: Array<{ label: string; url: string }>;
-  notes?: string[];
-};
-
-const metricSchema = z.object({
-  label: z.string().min(1),
-  value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
-  unit: z.string().optional(),
-});
+const worklaneDir = defaultWorklaneDir();
 
 const linkSchema = z.object({
   label: z.string().min(1),
   url: z.string().min(1),
 });
 
-const worklaneDir =
-  process.env.ARIADNE_WORKLANES_DIR ?? path.join(homedir(), '.ariadne-worklanes', 'worklanes');
+const evidenceInputSchema = z.object({
+  label: z.string().min(1),
+  url: z.string().min(1),
+  kind: z.enum(['link', 'file', 'pr', 'issue', 'runbook', 'log', 'screenshot', 'other']).default('link'),
+});
 
 const server = new McpServer(
   {
@@ -71,42 +52,28 @@ server.registerTool(
       title: z.string().min(1),
       summary: z.string().optional(),
       scope: z.string().optional(),
+      owner: z.string().optional(),
+      workspace: z.string().optional(),
+      repo: z.string().optional(),
+      threadId: z.string().optional(),
+      sessionId: z.string().optional(),
+      lastActor: z.string().optional(),
       total: z.number().positive().default(100),
       current: z.number().min(0).default(0),
       unit: z.string().min(1).default('percent'),
+      staleAfterMinutes: z.number().positive().default(60),
       baseline: z.array(metricSchema).default([]),
       metrics: z.array(metricSchema).default([]),
       nextAction: z.string().optional(),
       links: z.array(linkSchema).default([]),
+      evidence: z.array(evidenceInputSchema).default([]),
       notes: z.array(z.string()).default([]),
     }),
   },
   async (input) => {
-    const now = new Date().toISOString();
-    const id = slugify(input.id ?? input.title);
-    const lane: Worklane = {
-      schemaVersion: 1,
-      id,
-      title: input.title,
-      summary: input.summary,
-      scope: input.scope,
-      status: 'active',
-      startedAt: now,
-      updatedAt: now,
-      progress: {
-        current: input.current,
-        total: input.total,
-        unit: input.unit,
-      },
-      baseline: input.baseline,
-      metrics: input.metrics,
-      nextAction: input.nextAction,
-      links: input.links,
-      notes: input.notes,
-    };
-
-    await writeWorklane(lane);
-    return textResult(`Started worklane ${id} in ${worklaneDir}`);
+    const lane = createWorklane(input);
+    await writeWorklane(worklaneDir, lane);
+    return jsonResult({ message: `Started worklane ${lane.id}`, worklaneDir, lane });
   },
 );
 
@@ -116,42 +83,108 @@ server.registerTool(
     description: 'Update progress, metrics, blocker, next action, or notes for an existing worklane.',
     inputSchema: z.object({
       id: z.string().min(1),
-      status: z.enum(['planned', 'active', 'waiting', 'blocked', 'complete', 'cancelled']).optional(),
+      status: z.enum(worklaneStatuses).optional(),
       summary: z.string().optional(),
       scope: z.string().optional(),
+      owner: z.string().optional(),
+      workspace: z.string().optional(),
+      repo: z.string().optional(),
+      threadId: z.string().optional(),
+      sessionId: z.string().optional(),
+      lastActor: z.string().optional(),
       current: z.number().min(0).optional(),
       total: z.number().positive().optional(),
       unit: z.string().min(1).optional(),
+      staleAfterMinutes: z.number().positive().optional(),
+      baseline: z.array(metricSchema).optional(),
       metrics: z.array(metricSchema).optional(),
       nextAction: z.string().optional(),
       blocker: z.string().optional(),
       note: z.string().optional(),
+      warnings: z.array(z.string()).optional(),
     }),
   },
-  async (input) => {
-    const lane = await readWorklane(input.id);
-    const nextStatus = input.status ?? lane.status;
+  async ({ id, ...input }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const updated = updateWorklane(lane, input);
+    await writeWorklane(worklaneDir, updated);
+    return jsonResult({ message: `Updated worklane ${updated.id}`, worklaneDir, lane: updated });
+  },
+);
 
-    const updated: Worklane = {
-      ...lane,
-      status: nextStatus,
-      summary: input.summary ?? lane.summary,
-      scope: input.scope ?? lane.scope,
-      updatedAt: new Date().toISOString(),
-      completedAt: nextStatus === 'complete' ? (lane.completedAt ?? new Date().toISOString()) : lane.completedAt,
-      progress: {
-        current: input.current ?? lane.progress.current,
-        total: input.total ?? lane.progress.total,
-        unit: input.unit ?? lane.progress.unit,
-      },
-      metrics: input.metrics ?? lane.metrics,
-      nextAction: input.nextAction ?? lane.nextAction,
-      blocker: input.blocker ?? lane.blocker,
-      notes: input.note ? [...(lane.notes ?? []), input.note] : lane.notes,
-    };
+server.registerTool(
+  'add_milestone',
+  {
+    description: 'Append a milestone to a worklane timeline.',
+    inputSchema: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      summary: z.string().optional(),
+      status: z.enum(['planned', 'active', 'waiting', 'blocked', 'complete', 'cancelled']).default('complete'),
+      actor: z.string().optional(),
+    }),
+  },
+  async ({ id, ...input }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const updated = addMilestone(lane, input);
+    await writeWorklane(worklaneDir, updated);
+    return jsonResult({ message: `Added milestone to ${updated.id}`, worklaneDir, lane: updated });
+  },
+);
 
-    await writeWorklane(updated);
-    return textResult(`Updated worklane ${input.id}`);
+server.registerTool(
+  'set_blocker',
+  {
+    description: 'Mark a worklane blocked and record the blocker in its timeline.',
+    inputSchema: z.object({
+      id: z.string().min(1),
+      blocker: z.string().min(1),
+      actor: z.string().optional(),
+    }),
+  },
+  async ({ id, blocker, actor }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const updated = setBlocker(lane, blocker, actor);
+    await writeWorklane(worklaneDir, updated);
+    return jsonResult({ message: `Blocked worklane ${updated.id}`, worklaneDir, lane: updated });
+  },
+);
+
+server.registerTool(
+  'clear_blocker',
+  {
+    description: 'Clear a worklane blocker and optionally update the next action.',
+    inputSchema: z.object({
+      id: z.string().min(1),
+      nextAction: z.string().optional(),
+      actor: z.string().optional(),
+    }),
+  },
+  async ({ id, nextAction, actor }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const updated = clearBlocker(lane, nextAction, actor);
+    await writeWorklane(worklaneDir, updated);
+    return jsonResult({ message: `Cleared blocker for ${updated.id}`, worklaneDir, lane: updated });
+  },
+);
+
+server.registerTool(
+  'attach_evidence',
+  {
+    description: 'Attach a file, URL, PR, issue, log, screenshot, or runbook reference to a worklane.',
+    inputSchema: z.object({
+      id: z.string().min(1),
+      label: z.string().min(1),
+      url: z.string().min(1),
+      kind: z.enum(['link', 'file', 'pr', 'issue', 'runbook', 'log', 'screenshot', 'other']).default('link'),
+      actor: z.string().optional(),
+    }),
+  },
+  async ({ id, ...input }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const updated = attachEvidence(lane, input);
+    await writeWorklane(worklaneDir, updated);
+    return jsonResult({ message: `Attached evidence to ${updated.id}`, worklaneDir, lane: updated });
   },
 );
 
@@ -162,45 +195,61 @@ server.registerTool(
     inputSchema: z.object({
       id: z.string().min(1),
       note: z.string().optional(),
+      actor: z.string().optional(),
     }),
   },
-  async ({ id, note }) => {
-    const lane = await readWorklane(id);
-    const now = new Date().toISOString();
-    const completed: Worklane = {
-      ...lane,
-      status: 'complete',
-      updatedAt: now,
-      completedAt: now,
-      progress: {
-        ...lane.progress,
-        current: lane.progress.total,
-      },
-      notes: note ? [...(lane.notes ?? []), note] : lane.notes,
-    };
+  async ({ id, note, actor }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const completed = completeWorklane(lane, note, actor);
+    await writeWorklane(worklaneDir, completed);
+    return jsonResult({ message: `Completed worklane ${completed.id}`, worklaneDir, lane: completed });
+  },
+);
 
-    await writeWorklane(completed);
-    return textResult(`Completed worklane ${id}`);
+server.registerTool(
+  'archive_worklane',
+  {
+    description: 'Mark a worklane archived while preserving its JSON file and history.',
+    inputSchema: z.object({
+      id: z.string().min(1),
+      note: z.string().optional(),
+      actor: z.string().optional(),
+    }),
+  },
+  async ({ id, note, actor }) => {
+    const lane = await readWorklane(worklaneDir, id);
+    const archived = archiveWorklane(lane, note, actor);
+    await writeWorklane(worklaneDir, archived);
+    return jsonResult({ message: `Archived worklane ${archived.id}`, worklaneDir, lane: archived });
   },
 );
 
 server.registerTool(
   'list_worklanes',
   {
-    description: 'List known worklanes and their current progress.',
+    description: 'List known worklanes and malformed files from the configured worklane directory.',
     inputSchema: z.object({}),
   },
   async () => {
-    await ensureDir();
-    const files = (await readdir(worklaneDir)).filter((file) => file.endsWith('.json'));
-    const lanes = await Promise.all(
-      files.map(async (file) => {
-        const raw = await readFile(path.join(worklaneDir, file), 'utf8');
-        return JSON.parse(raw) as Worklane;
-      }),
-    );
+    const result = await listWorklanes(worklaneDir);
+    return jsonResult(result);
+  },
+);
 
-    return textResult(JSON.stringify({ worklaneDir, lanes }, null, 2));
+server.registerTool(
+  'summarize_worklanes',
+  {
+    description: 'Return concise one-line summaries for all known worklanes.',
+    inputSchema: z.object({
+      includeArchived: z.boolean().default(false),
+    }),
+  },
+  async ({ includeArchived }) => {
+    const result = await listWorklanes(worklaneDir);
+    const summaries = result.lanes
+      .filter((lane) => includeArchived || lane.status !== 'archived')
+      .map((lane) => summarizeWorklane(lane));
+    return jsonResult({ worklaneDir, summaries, malformed: result.malformed });
   },
 );
 
@@ -209,37 +258,13 @@ async function main() {
   await server.connect(transport);
 }
 
-async function ensureDir() {
-  await mkdir(worklaneDir, { recursive: true });
-}
-
-async function readWorklane(id: string): Promise<Worklane> {
-  const file = path.join(worklaneDir, `${slugify(id)}.json`);
-  const raw = await readFile(file, 'utf8');
-  return JSON.parse(raw) as Worklane;
-}
-
-async function writeWorklane(lane: Worklane) {
-  await ensureDir();
-  await writeFile(path.join(worklaneDir, `${lane.id}.json`), `${JSON.stringify(lane, null, 2)}\n`);
-}
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
-
-function textResult(text: string) {
+function jsonResult(value: unknown) {
   return {
-    content: [{ type: 'text' as const, text }],
+    content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
   };
 }
 
 main().catch((error: unknown) => {
-  console.error(error);
+  console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });

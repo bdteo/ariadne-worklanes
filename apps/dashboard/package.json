@@ -7,17 +7,22 @@
     "build": "next build",
     "dev": "next dev -p 3737",
     "start": "next start -p 3737",
+    "test": "vitest run",
+    "test:visual": "playwright test",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@ariadne-worklanes/core": "workspace:*",
     "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^24.10.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

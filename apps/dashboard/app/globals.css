@@ -99,6 +99,44 @@ h2 {
   gap: 16px;
 }
 
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 150px 190px auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button,
+.cardActions button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.toolbar input,
+.toolbar select {
+  padding: 0 11px;
+}
+
+.toggle {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 11px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .card,
 .empty {
   border: 1px solid var(--line);
@@ -111,6 +149,38 @@ h2 {
   display: grid;
   gap: 18px;
   padding: 18px;
+}
+
+.staleCard {
+  border-color: #f0c772;
+  background: #fffdf8;
+}
+
+.malformedGrid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.malformedCard {
+  border-color: #f3aaaa;
+}
+
+.rawPreview,
+.rawJson {
+  display: block;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #0f172a;
+  color: #dbeafe;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.rawJson {
+  max-height: 460px;
 }
 
 .empty {
@@ -157,9 +227,15 @@ h2 {
 }
 
 .status.blocked,
-.status.cancelled {
+.status.cancelled,
+.status.stale {
   background: #fff0f0;
   color: var(--red);
+}
+
+.status.archived {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .summary {
@@ -268,6 +344,90 @@ dd {
   line-height: 1.45;
 }
 
+.cardActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardActions a,
+.backLink,
+.linkList a {
+  color: var(--blue);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cardActions button {
+  cursor: pointer;
+  padding: 0 11px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.errorBanner {
+  border-left: 3px solid var(--red);
+  padding: 10px 12px;
+  background: #fff0f0;
+  color: #842323;
+}
+
+.compactShell .card {
+  gap: 12px;
+}
+
+.compactShell .facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detailShell {
+  display: grid;
+  gap: 16px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.linkList,
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linkList {
+  display: grid;
+  gap: 10px;
+}
+
+.linkList li,
+.timeline li {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfe;
+}
+
+.linkList span,
+.timeline time,
+.timeline span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 @media (max-width: 760px) {
   .shell {
     width: min(100% - 28px, 720px);
@@ -276,7 +436,8 @@ dd {
 
   .topbar,
   .cardHeader,
-  .progressCopy {
+  .progressCopy,
+  .detailHeader {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -288,7 +449,14 @@ dd {
   }
 
   .facts,
-  .metrics {
+  .metrics,
+  .toolbar,
+  .detailGrid {
     grid-template-columns: 1fr;
+  }
+
+  .cardActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "id": "stale-lane",
+  "title": "Stale investigation",
+  "summary": "A lane that should be highlighted as stale.",
+  "scope": "Investigation",
+  "status": "active",
+  "startedAt": "2026-06-18T08:00:00.000Z",
+  "updatedAt": "2026-06-18T08:05:00.000Z",
+  "staleAfterMinutes": 15,
+  "progress": { "current": 1, "total": 4, "unit": "steps" },
+  "baseline": [],
+  "metrics": [],
+  "milestones": [],
+  "events": [],
+  "evidence": [],
+  "warnings": ["No update in more than 15 minutes."],
+  "nextAction": "Ask owner for state.",
+  "links": [],
+  "notes": []
+}

@@ -7,10 +7,11 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter @ariadne-worklanes/dashboard dev",
+    "dev": "pnpm --filter @ariadne-worklanes/core build && pnpm --filter @ariadne-worklanes/dashboard dev",
     "mcp": "pnpm --filter @ariadne-worklanes/mcp-server start",
     "mcp:dev": "pnpm --filter @ariadne-worklanes/mcp-server dev",
-    "typecheck": "pnpm -r typecheck"
+    "test": "pnpm build && pnpm -r --if-present test",
+    "typecheck": "pnpm --filter @ariadne-worklanes/core build && pnpm -r typecheck"
   },
   "keywords": [
     "agents",

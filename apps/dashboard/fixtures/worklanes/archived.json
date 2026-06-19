@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "id": "archived",
+  "title": "Archived release",
+  "summary": "Completed and archived lane.",
+  "scope": "Release",
+  "status": "archived",
+  "startedAt": "2026-06-17T08:00:00.000Z",
+  "updatedAt": "2026-06-17T10:00:00.000Z",
+  "archivedAt": "2026-06-17T10:05:00.000Z",
+  "staleAfterMinutes": 60,
+  "progress": { "current": 5, "total": 5, "unit": "steps" },
+  "baseline": [],
+  "metrics": [],
+  "milestones": [],
+  "events": [],
+  "evidence": [],
+  "warnings": [],
+  "links": [],
+  "notes": []
+}

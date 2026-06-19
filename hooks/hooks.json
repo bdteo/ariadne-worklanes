@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARIADNE_HOOK_EVENT=SessionStart node \"${PLUGIN_ROOT:-$(pwd)}/hooks/hook.mjs\" || true",
+            "timeout": 10,
+            "statusMessage": "Checking Ariadne worklanes"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARIADNE_HOOK_EVENT=UserPromptSubmit node \"${PLUGIN_ROOT:-$(pwd)}/hooks/hook.mjs\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARIADNE_HOOK_EVENT=Stop node \"${PLUGIN_ROOT:-$(pwd)}/hooks/hook.mjs\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
