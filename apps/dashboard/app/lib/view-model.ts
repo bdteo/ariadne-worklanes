@@ -8,7 +8,7 @@ export function filterLanes(lanes: DashboardLane[], filter: StatusFilter, query:
   return lanes.filter((lane) => {
     const statusMatch =
       filter === 'all' ||
-      (filter === 'open' && ['planned', 'active', 'waiting'].includes(lane.status)) ||
+      (filter === 'open' && ['planned', 'active', 'waiting', 'blocked'].includes(lane.status)) ||
       (filter === 'stale' && lane.stale) ||
       (filter === 'blocked' && lane.status === 'blocked') ||
       (filter === 'complete' && lane.status === 'complete') ||

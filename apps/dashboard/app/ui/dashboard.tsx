@@ -25,16 +25,83 @@ const themeOptions: { value: ThemeMode; label: string }[] = [
 ];
 
 const openStatuses = new Set<DashboardLane['status']>(['planned', 'active', 'waiting', 'blocked']);
+const defaultDashboardState: DashboardUrlState = { filter: 'open', sort: 'stale', query: '', compact: false };
+const statusFilters = new Set<StatusFilter>(['all', 'open', 'stale', 'blocked', 'complete', 'archived']);
+const sortModes = new Set<SortMode>(['stale', 'updated', 'started', 'progress', 'title']);
+
+type DashboardUrlState = {
+  filter: StatusFilter;
+  sort: SortMode;
+  query: string;
+  compact: boolean;
+};
+
+function readDashboardUrlState(): DashboardUrlState {
+  if (typeof window === 'undefined') {
+    return defaultDashboardState;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const filterParam = params.get('status') ?? params.get('filter');
+  const sortParam = params.get('sort');
+  const compactParam = params.get('compact');
+
+  return {
+    filter: filterParam && statusFilters.has(filterParam as StatusFilter) ? (filterParam as StatusFilter) : defaultDashboardState.filter,
+    sort: sortParam && sortModes.has(sortParam as SortMode) ? (sortParam as SortMode) : defaultDashboardState.sort,
+    query: params.get('q') ?? params.get('search') ?? defaultDashboardState.query,
+    compact: compactParam === '1' || compactParam === 'true',
+  };
+}
+
+function writeDashboardUrlState(state: DashboardUrlState) {
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+
+  params.delete('filter');
+  params.delete('search');
+
+  if (state.filter === defaultDashboardState.filter) {
+    params.delete('status');
+  } else {
+    params.set('status', state.filter);
+  }
+
+  if (state.sort === defaultDashboardState.sort) {
+    params.delete('sort');
+  } else {
+    params.set('sort', state.sort);
+  }
+
+  const trimmedQuery = state.query.trim();
+  if (trimmedQuery) {
+    params.set('q', trimmedQuery);
+  } else {
+    params.delete('q');
+  }
+
+  if (state.compact) {
+    params.set('compact', '1');
+  } else {
+    params.delete('compact');
+  }
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(null, '', nextUrl);
+  }
+}
 
 export function Dashboard() {
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState<string>('');
-  const [filter, setFilter] = useState<StatusFilter>('all');
-  const [sort, setSort] = useState<SortMode>('stale');
-  const [query, setQuery] = useState('');
-  const [compact, setCompact] = useState(false);
+  const [urlState, setUrlState] = useState<DashboardUrlState>(defaultDashboardState);
+  const [urlStateReady, setUrlStateReady] = useState(false);
   const [copied, setCopied] = useState<string>('');
   const [theme, setTheme] = useState<ThemeMode>('system');
+
+  const { compact, filter, query, sort } = urlState;
 
   useEffect(() => {
     const storedTheme = window.localStorage.getItem('ariadne-theme');
@@ -53,6 +120,23 @@ export function Dashboard() {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem('ariadne-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    function syncFromUrl() {
+      setUrlState(readDashboardUrlState());
+    }
+
+    syncFromUrl();
+    setUrlStateReady(true);
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, []);
+
+  useEffect(() => {
+    if (urlStateReady) {
+      writeDashboardUrlState(urlState);
+    }
+  }, [urlState, urlStateReady]);
 
   useEffect(() => {
     let active = true;
@@ -110,6 +194,10 @@ export function Dashboard() {
     window.setTimeout(() => setCopied(''), 1400);
   }
 
+  function updateUrlState(partial: Partial<DashboardUrlState>) {
+    setUrlState((current) => ({ ...current, ...partial }));
+  }
+
   return (
     <main className={`shell ${compact ? 'compactShell' : ''}`}>
       <header className="topbar">
@@ -143,10 +231,10 @@ export function Dashboard() {
             aria-label="Search worklanes"
             placeholder="Search lanes, scopes, next actions"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => updateUrlState({ query: event.target.value })}
           />
         </div>
-        <select aria-label="Filter worklanes" value={filter} onChange={(event) => setFilter(event.target.value as StatusFilter)}>
+        <select aria-label="Filter worklanes" value={filter} onChange={(event) => updateUrlState({ filter: event.target.value as StatusFilter })}>
           <option value="all">All</option>
           <option value="open">Open</option>
           <option value="stale">Stale</option>
@@ -154,7 +242,7 @@ export function Dashboard() {
           <option value="complete">Complete</option>
           <option value="archived">Archived</option>
         </select>
-        <select aria-label="Sort worklanes" value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
+        <select aria-label="Sort worklanes" value={sort} onChange={(event) => updateUrlState({ sort: event.target.value as SortMode })}>
           <option value="stale">Stale first</option>
           <option value="updated">Recently updated</option>
           <option value="started">Recently started</option>
@@ -175,7 +263,7 @@ export function Dashboard() {
           ))}
         </div>
         <label className="toggle compactToggle">
-          <input type="checkbox" checked={compact} onChange={(event) => setCompact(event.target.checked)} />
+          <input type="checkbox" checked={compact} onChange={(event) => updateUrlState({ compact: event.target.checked })} />
           Compact
         </label>
       </section>

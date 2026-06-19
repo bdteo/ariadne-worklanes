@@ -6,6 +6,7 @@ import type { DashboardLane } from './worklane-data';
 describe('dashboard view model', () => {
   it('filters by stale, blocked, archived, and search query', () => {
     const lanes = fixtureLanes();
+    expect(filterLanes(lanes, 'open', '').map((lane) => lane.id)).toEqual(['active', 'stale', 'blocked']);
     expect(filterLanes(lanes, 'stale', '')).toHaveLength(1);
     expect(filterLanes(lanes, 'blocked', '')[0]?.id).toBe('blocked');
     expect(filterLanes(lanes, 'archived', '')[0]?.id).toBe('archived');
@@ -49,6 +50,7 @@ function fixtureLanes(): DashboardLane[] {
     { ...base, id: 'active' },
     { ...base, id: 'stale', stale: true, summaryText: 'Lane: active / stale | 50%' },
     { ...base, id: 'blocked', status: 'blocked', blocker: 'Provider cooldown', summaryText: 'Lane: blocked | Blocked: Provider cooldown' },
+    { ...base, id: 'complete', status: 'complete', summaryText: 'Lane: complete | 100%' },
     { ...base, id: 'archived', status: 'archived', summaryText: 'Lane: archived | 50%' },
   ];
 }

@@ -4,6 +4,7 @@ test('renders worklane cards without obvious layout breakage', async ({ page }, 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Agent work, kept visible.' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: 'Archived release' })).toHaveCount(0);
   await expect(page.getByRole('article').filter({ hasText: 'broken.json' }).getByText('Malformed', { exact: true })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Stale investigation' }).getByText('Stale').first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath(`dashboard-${testInfo.project.name}.png`), fullPage: true });
@@ -21,4 +22,26 @@ test('opens a lane detail page with timeline and raw JSON', async ({ page }, tes
   await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Raw JSON' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath(`detail-${testInfo.project.name}.png`), fullPage: true });
+});
+
+test('syncs dashboard filters with the URL', async ({ page }) => {
+  await page.goto('/?status=archived&sort=title&q=release&compact=1');
+  await expect(page.getByLabel('Filter worklanes')).toHaveValue('archived');
+  await expect(page.getByLabel('Sort worklanes')).toHaveValue('title');
+  await expect(page.getByLabel('Search worklanes')).toHaveValue('release');
+  await expect(page.getByLabel('Compact')).toBeChecked();
+  await expect(page.getByRole('article').filter({ hasText: 'Archived release' })).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toHaveCount(0);
+
+  await page.getByLabel('Filter worklanes').selectOption('all');
+  await expect(page).toHaveURL(/status=all/);
+
+  await page.getByLabel('Sort worklanes').selectOption('progress');
+  await expect(page).toHaveURL(/sort=progress/);
+
+  await page.getByLabel('Search worklanes').fill('Provider');
+  await expect(page).toHaveURL(/q=Provider/);
+
+  await page.getByLabel('Compact').uncheck();
+  await expect(page).not.toHaveURL(/compact=1/);
 });
