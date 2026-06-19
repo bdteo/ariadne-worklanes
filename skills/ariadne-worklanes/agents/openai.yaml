@@ -1,0 +1,15 @@
+interface:
+  display_name: Ariadne Worklanes
+  short_description: Track long-running agent work in local progress cards.
+  default_prompt: Start or update the Ariadne worklane for this task.
+  brand_color: "#2563EB"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  tools:
+    - type: mcp
+      value: ariadne-worklanes
+      description: Writes structured worklane status files for the Ariadne dashboard.
+      transport: stdio

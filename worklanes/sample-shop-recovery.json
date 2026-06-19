@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-shop-recovery",
+  "title": "Shop recovery baseline",
+  "summary": "Example lane showing baseline-aware progress for a long-running recovery pass.",
+  "scope": "Production Shops data repair",
+  "status": "active",
+  "startedAt": "2026-06-19T08:49:26.000Z",
+  "updatedAt": "2026-06-19T09:15:44.000Z",
+  "progress": {
+    "current": 266,
+    "total": 3847,
+    "unit": "shops"
+  },
+  "baseline": [
+    { "label": "Shops with live products", "value": 22797 },
+    { "label": "Shops without live products", "value": 8443 },
+    { "label": "High-signal recoverable shops", "value": 3847 }
+  ],
+  "metrics": [
+    { "label": "Shops with live products", "value": 23063 },
+    { "label": "Shops without live products", "value": 8177 },
+    { "label": "Remaining high-signal recoverable shops", "value": 2945 }
+  ],
+  "nextAction": "Continue bounded batches and distinguish recovered shops from reclassified candidates.",
+  "blocker": "",
+  "links": [
+    {
+      "label": "Idea note",
+      "url": "obsidian://open?vault=Boris&file=Resources%2FIdeas%2FBaseline%20Aware%20Status%20MCP"
+    }
+  ],
+  "notes": [
+    "Metadata product-count totals are upper-bound signals, not guaranteed imported rows.",
+    "High-signal backlog can shrink through reclassification as well as true product recovery."
+  ]
+}

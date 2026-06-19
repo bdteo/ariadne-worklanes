@@ -1,0 +1,41 @@
+{
+  "name": "ariadne-worklanes",
+  "version": "0.1.0",
+  "description": "Local worklane observability for long-running agent and ops sessions.",
+  "author": {
+    "name": "Boris Teoharov"
+  },
+  "homepage": "https://github.com/bdteo/ariadne-worklanes",
+  "repository": "https://github.com/bdteo/ariadne-worklanes",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "mcp",
+    "observability",
+    "operations",
+    "dashboard",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ariadne Worklanes",
+    "shortDescription": "Track long-running agent work as visible worklanes.",
+    "longDescription": "Ariadne Worklanes gives agents MCP tools for writing structured worklane status files and a local dashboard for showing baseline-aware progress cards across long-running ops, DevOps, and recovery sessions.",
+    "developerName": "Boris Teoharov",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP",
+      "Read",
+      "Write",
+      "Dashboard"
+    ],
+    "websiteURL": "https://github.com/bdteo/ariadne-worklanes",
+    "defaultPrompt": [
+      "Start an Ariadne worklane for this long-running task.",
+      "Update the Ariadne worklane status before handing off."
+    ],
+    "brandColor": "#2563EB"
+  },
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json"
+}
