@@ -2,22 +2,49 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { getLaneDetail } from '../../lib/worklane-data';
-import { formatElapsed } from '../../lib/view-model';
+import {
+  buildTimeline,
+  computeFreshness,
+  computeMetricDeltas,
+  formatDelta,
+  formatElapsed,
+  type TimelineEntry,
+} from '../../lib/view-model';
 
 export const dynamic = 'force-dynamic';
+
+const timelineToneClass: Record<TimelineEntry['type'], string> = {
+  created: 'tl-created',
+  updated: 'tl-updated',
+  milestone: 'tl-milestone',
+  blocked: 'tl-blocked',
+  unblocked: 'tl-unblocked',
+  evidence: 'tl-evidence',
+  archived: 'tl-archived',
+  completed: 'tl-completed',
+  note: 'tl-note',
+};
+
+const timelineLabel: Record<TimelineEntry['type'], string> = {
+  created: 'Created',
+  updated: 'Updated',
+  milestone: 'Milestone',
+  blocked: 'Blocked',
+  unblocked: 'Unblocked',
+  evidence: 'Evidence',
+  archived: 'Archived',
+  completed: 'Completed',
+  note: 'Note',
+};
 
 export default async function WorklaneDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
     const { lane, sourceDir } = await getLaneDetail(id);
-    const timeline = [...lane.events, ...lane.milestones.map((milestone) => ({
-      id: milestone.id,
-      type: 'milestone',
-      at: milestone.at,
-      title: milestone.title,
-      message: milestone.summary ?? milestone.title,
-    }))].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    const timeline = buildTimeline(lane);
+    const deltas = computeMetricDeltas(lane.baseline, lane.metrics);
+    const freshness = computeFreshness(lane);
 
     return (
       <main className={`shell detailShell ${lane.stale ? 'isStale' : `is-${lane.status}`}`}>
@@ -40,7 +67,7 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
             <div className="track"><span style={{ width: `${lane.progressPercent}%` }} /></div>
             <dl className="facts">
               <div><dt>Elapsed</dt><dd>{formatElapsed(lane.startedAt, lane.completedAt)}</dd></div>
-              <div><dt>Last Update</dt><dd>{formatElapsed(lane.updatedAt)} ago</dd></div>
+              <div><dt>Freshness</dt><dd className={`freshness freshness-${freshness.level}`}>{freshness.label}</dd></div>
               <div><dt>Source</dt><dd>{sourceDir}</dd></div>
             </dl>
           </article>
@@ -53,19 +80,33 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
           </article>
         </section>
 
-        <section className="detailGrid">
-          <article className="card">
-            <h2>Metrics</h2>
+        <section className="card">
+          <h2>Metrics &amp; Delta</h2>
+          {deltas.length === 0 ? (
+            <p className="summary">No metrics captured yet.</p>
+          ) : (
             <div className="metrics">
-              {[...lane.baseline, ...lane.metrics].map((metric) => (
-                <div key={`${metric.label}-${String(metric.value)}`}>
-                  <span>{metric.label}</span>
-                  <strong>{String(metric.value)}{metric.unit ? ` ${metric.unit}` : ''}</strong>
-                </div>
-              ))}
+              {deltas.map((delta) => {
+                const arrow = delta.direction === 'up' ? '▲' : delta.direction === 'down' ? '▼' : delta.direction === 'flat' ? '·' : '';
+                const toneClass = delta.direction === 'up' ? 'deltaUp' : delta.direction === 'down' ? 'deltaDown' : 'deltaFlat';
+                return (
+                  <div className={`metricTile ${toneClass}`} key={delta.label} title={delta.delta !== null ? `${delta.baseline} → ${delta.current}` : String(delta.current)}>
+                    <span>{delta.label}</span>
+                    <strong>
+                      {String(delta.current)}{delta.unit ? ` ${delta.unit}` : ''}
+                    </strong>
+                    <em className="deltaChip">
+                      {delta.delta !== null ? `${arrow} ${formatDelta(delta)}` : `${String(delta.current)}`}
+                    </em>
+                    {delta.delta !== null ? <code className="deltaBaseline">baseline {String(delta.baseline)}</code> : null}
+                  </div>
+                );
+              })}
             </div>
-          </article>
+          )}
+        </section>
 
+        <section className="detailGrid">
           <article className="card">
             <h2>Evidence</h2>
             {lane.evidence.length === 0 ? <p className="summary">No evidence attached yet.</p> : null}
@@ -78,16 +119,36 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
               ))}
             </ul>
           </article>
+
+          <article className="card">
+            <h2>Links</h2>
+            {lane.links.length === 0 ? <p className="summary">No links recorded.</p> : null}
+            <ul className="linkList">
+              {lane.links.map((link) => (
+                <li key={`${link.label}-${link.url}`}>
+                  <a href={link.url}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </article>
         </section>
 
         <section className="card">
           <h2>Timeline</h2>
+          {timeline.length === 0 ? <p className="summary">No events recorded.</p> : null}
           <ol className="timeline">
             {timeline.map((event) => (
-              <li key={event.id}>
-                <time>{new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.at))}</time>
-                <strong>{event.title ?? event.type}</strong>
-                <span>{event.message}</span>
+              <li key={event.id} className={`timelineItem ${timelineToneClass[event.type] ?? 'tl-note'}`}>
+                <span className="timelineRail" aria-hidden="true" />
+                <div className="timelineBody">
+                  <div className="timelineMeta">
+                    <time>{new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.at))}</time>
+                    <span className={`timelineType ${timelineToneClass[event.type] ?? 'tl-note'}`}>{timelineLabel[event.type] ?? event.type}</span>
+                    {event.actor ? <span className="timelineActor">{event.actor}</span> : null}
+                  </div>
+                  <strong>{event.title}</strong>
+                  <span>{event.message}</span>
+                </div>
               </li>
             ))}
           </ol>
