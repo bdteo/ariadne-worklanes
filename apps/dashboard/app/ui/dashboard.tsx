@@ -220,31 +220,43 @@ export function Dashboard() {
     <main className={`shell ${compact ? 'compactShell' : ''}`}>
       <header className="masthead">
         <div className="brandPanel">
-          <div>
+          <div className="brandMark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12h4l3-8 4 16 3-8h4" />
+            </svg>
+          </div>
+          <div className="brandCopy">
             <p className="eyebrow">Ariadne Worklanes</p>
             <h1>Worklanes</h1>
-          </div>
-          <div className="heroMeta" aria-label="Dashboard status">
-            <span>{payload ? `${payload.lanes.length} lanes` : 'Loading lanes'}</span>
-            <span>{payload?.malformed.length ?? 0} malformed</span>
-            <span>Polled {lastPoll}</span>
-          </div>
-        </div>
-
-        <div className="statRail" aria-label="Worklane totals">
-          {mastheadStats.map((item) => (
-            <div className={`statChip ${item.tone}`} key={item.label}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
+            <div className="heroMeta" aria-label="Dashboard status">
+              <span>{payload ? `${payload.lanes.length} lanes` : 'Loading lanes'}</span>
+              <span>{payload?.malformed.length ?? 0} malformed</span>
+              <span>Polled {lastPoll}</span>
             </div>
-          ))}
+          </div>
         </div>
 
         <aside className="sourcePanel" aria-label="Worklane source">
-          <span>Source</span>
-          <code>{payload?.sourceDir ?? 'Resolving source directory...'}</code>
+          <div className="sourceIcon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div className="sourceBody">
+            <span>Source</span>
+            <code>{payload?.sourceDir ?? 'Resolving source directory...'}</code>
+          </div>
         </aside>
       </header>
+
+      <div className="statRail" aria-label="Worklane totals">
+        {mastheadStats.map((item) => (
+          <div className={`statChip ${item.tone}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
 
       <section className="controlDeck" aria-label="Dashboard controls">
         <div className="statusTabs" role="group" aria-label="Filter worklanes">

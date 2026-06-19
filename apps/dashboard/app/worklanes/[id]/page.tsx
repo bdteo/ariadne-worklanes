@@ -20,7 +20,7 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
     }))].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 
     return (
-      <main className="shell detailShell">
+      <main className={`shell detailShell ${lane.stale ? 'isStale' : `is-${lane.status}`}`}>
         <header className="detailHeader">
           <div>
             <Link href="/" className="backLink">Back to dashboard</Link>
