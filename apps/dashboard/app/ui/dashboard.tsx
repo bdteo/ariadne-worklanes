@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 
 import { copySummary, filterLanes, formatElapsed, sortLanes, type SortMode, type StatusFilter } from '../lib/view-model';
 import type { DashboardPayload, DashboardLane } from '../lib/worklane-data';
@@ -16,6 +16,16 @@ const statusLabels: Record<DashboardLane['status'], string> = {
   archived: 'Archived',
 };
 
+type ThemeMode = 'system' | 'light' | 'dark';
+
+const themeOptions: { value: ThemeMode; label: string }[] = [
+  { value: 'system', label: 'Auto' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+const openStatuses = new Set<DashboardLane['status']>(['planned', 'active', 'waiting', 'blocked']);
+
 export function Dashboard() {
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState<string>('');
@@ -24,6 +34,25 @@ export function Dashboard() {
   const [query, setQuery] = useState('');
   const [compact, setCompact] = useState(false);
   const [copied, setCopied] = useState<string>('');
+  const [theme, setTheme] = useState<ThemeMode>('system');
+
+  useEffect(() => {
+    const storedTheme = window.localStorage.getItem('ariadne-theme');
+    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+      setTheme(storedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'system') {
+      document.documentElement.removeAttribute('data-theme');
+      window.localStorage.removeItem('ariadne-theme');
+      return;
+    }
+
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('ariadne-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +87,23 @@ export function Dashboard() {
     return sortLanes(filterLanes(payload?.lanes ?? [], filter, query), sort);
   }, [filter, payload?.lanes, query, sort]);
 
+  const overview = useMemo(() => {
+    const all = payload?.lanes ?? [];
+    const open = all.filter((lane) => openStatuses.has(lane.status)).length;
+    const active = all.filter((lane) => lane.status === 'active').length;
+    const blocked = all.filter((lane) => lane.status === 'blocked' || lane.stale).length;
+    const complete = all.filter((lane) => lane.status === 'complete').length;
+
+    return [
+      { label: 'Open', value: open, tone: 'open' },
+      { label: 'Active', value: active, tone: 'active' },
+      { label: 'Needs eyes', value: blocked, tone: blocked > 0 ? 'attention' : 'quiet' },
+      { label: 'Complete', value: complete, tone: 'complete' },
+    ];
+  }, [payload?.lanes]);
+
+  const lastPoll = payload ? `${formatElapsed(payload.generatedAt)} ago` : 'waiting';
+
   async function copyLane(lane: DashboardLane) {
     await navigator.clipboard.writeText(copySummary(lane));
     setCopied(lane.id);
@@ -67,23 +113,39 @@ export function Dashboard() {
   return (
     <main className={`shell ${compact ? 'compactShell' : ''}`}>
       <header className="topbar">
-        <div>
+        <div className="heroCopy">
           <p className="eyebrow">Ariadne Worklanes</p>
           <h1>Agent work, kept visible.</h1>
+          <div className="heroMeta" aria-label="Dashboard status">
+            <span>{payload ? `${payload.lanes.length} lanes` : 'Loading lanes'}</span>
+            <span>{payload?.malformed.length ?? 0} malformed</span>
+            <span>Polled {lastPoll}</span>
+          </div>
         </div>
-        <div className="source">
-          <span>{payload ? `${payload.lanes.length} lanes` : 'Loading lanes'}</span>
+        <aside className="sourcePanel" aria-label="Worklane source">
+          <span>Source directory</span>
           <code>{payload?.sourceDir ?? 'Resolving source directory...'}</code>
-        </div>
+        </aside>
       </header>
 
+      <section className="overviewGrid" aria-label="Worklane totals">
+        {overview.map((item) => (
+          <div className={`overviewCard ${item.tone}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </section>
+
       <section className="toolbar" aria-label="Dashboard controls">
-        <input
-          aria-label="Search worklanes"
-          placeholder="Search lanes"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+        <div className="searchBox">
+          <input
+            aria-label="Search worklanes"
+            placeholder="Search lanes, scopes, next actions"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
         <select aria-label="Filter worklanes" value={filter} onChange={(event) => setFilter(event.target.value as StatusFilter)}>
           <option value="all">All</option>
           <option value="open">Open</option>
@@ -99,7 +161,20 @@ export function Dashboard() {
           <option value="progress">Progress</option>
           <option value="title">Title</option>
         </select>
-        <label className="toggle">
+        <div className="themeSwitch" role="group" aria-label="Theme mode">
+          {themeOptions.map((option) => (
+            <button
+              aria-pressed={theme === option.value}
+              className={theme === option.value ? 'selected' : ''}
+              key={option.value}
+              onClick={() => setTheme(option.value)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <label className="toggle compactToggle">
           <input type="checkbox" checked={compact} onChange={(event) => setCompact(event.target.checked)} />
           Compact
         </label>
@@ -132,76 +207,81 @@ export function Dashboard() {
         </section>
       ) : (
         <section className="grid" aria-label="Worklanes">
-          {lanes.map((lane) => (
-            <article className={`card ${lane.stale ? 'staleCard' : ''}`} key={lane.id}>
-              <div className="cardHeader">
-                <div>
-                  <p className="scope">{lane.scope ?? lane.repo ?? lane.id}</p>
-                  <h2>{lane.title}</h2>
-                </div>
-                <span className={`status ${lane.stale ? 'stale' : lane.status}`}>{lane.stale ? 'Stale' : statusLabels[lane.status]}</span>
-              </div>
+          {lanes.map((lane) => {
+            const progressStyle = { '--progress': `${Math.max(0, Math.min(100, lane.progressPercent))}%` } as CSSProperties;
+            const freshness = lane.stale ? 'Needs update' : `Updated ${formatElapsed(lane.updatedAt)} ago`;
 
-              {lane.summary && !compact ? <p className="summary">{lane.summary}</p> : null}
-
-              <div className="progressRow">
-                <div className="progressCopy">
-                  <strong>{Math.round(lane.progressPercent)}%</strong>
-                  <span>
-                    {lane.progress.current} / {lane.progress.total} {lane.progress.unit}
-                  </span>
+            return (
+              <article className={`card statusCard ${lane.stale ? 'isStale' : `is-${lane.status}`}`} key={lane.id}>
+                <div className="cardHeader">
+                  <div>
+                    <p className="scope">{lane.scope ?? lane.repo ?? lane.id}</p>
+                    <h2>{lane.title}</h2>
+                  </div>
+                  <span className={`status ${lane.stale ? 'stale' : lane.status}`}>{lane.stale ? 'Stale' : statusLabels[lane.status]}</span>
                 </div>
-                <div className="track" aria-label={`${lane.title} progress`}>
-                  <span style={{ width: `${lane.progressPercent}%` }} />
-                </div>
-              </div>
 
-              <dl className="facts">
-                <div>
-                  <dt>Elapsed</dt>
-                  <dd>{formatElapsed(lane.startedAt, lane.completedAt)}</dd>
-                </div>
-                <div>
-                  <dt>Last Update</dt>
-                  <dd>{formatElapsed(lane.updatedAt)} ago</dd>
-                </div>
-                <div>
-                  <dt>Events</dt>
-                  <dd>{lane.events.length}</dd>
-                </div>
-              </dl>
+                {lane.summary && !compact ? <p className="summary">{lane.summary}</p> : null}
 
-              {!compact ? (
-                <div className="metrics">
-                  {[...lane.baseline.slice(0, 2), ...lane.metrics.slice(0, 4)].slice(0, 4).map((metric) => (
-                    <div key={`${lane.id}-${metric.label}`}>
-                      <span>{metric.label}</span>
-                      <strong>{String(metric.value)}{metric.unit ? ` ${metric.unit}` : ''}</strong>
-                    </div>
-                  ))}
+                <div className="progressRow" style={progressStyle}>
+                  <div className="progressCopy">
+                    <strong>{Math.round(lane.progressPercent)}%</strong>
+                    <span>
+                      {lane.progress.current} / {lane.progress.total} {lane.progress.unit}
+                    </span>
+                  </div>
+                  <div className="track" aria-label={`${lane.title} progress`}>
+                    <span />
+                  </div>
                 </div>
-              ) : null}
 
-              {lane.blocker ? (
-                <p className="callout blockedCallout">
-                  <strong>Blocked:</strong> {lane.blocker}
-                </p>
-              ) : null}
+                <dl className="facts">
+                  <div>
+                    <dt>Elapsed</dt>
+                    <dd>{formatElapsed(lane.startedAt, lane.completedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Freshness</dt>
+                    <dd>{freshness}</dd>
+                  </div>
+                  <div>
+                    <dt>Events</dt>
+                    <dd>{lane.events.length}</dd>
+                  </div>
+                </dl>
 
-              {lane.nextAction ? (
-                <p className="callout">
-                  <strong>Next:</strong> {lane.nextAction}
-                </p>
-              ) : null}
+                {!compact ? (
+                  <div className="metrics">
+                    {[...lane.baseline.slice(0, 2), ...lane.metrics.slice(0, 4)].slice(0, 4).map((metric) => (
+                      <div key={`${lane.id}-${metric.label}`}>
+                        <span>{metric.label}</span>
+                        <strong>{String(metric.value)}{metric.unit ? ` ${metric.unit}` : ''}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
 
-              <div className="cardActions">
-                <Link href={`/worklanes/${lane.id}`}>Details</Link>
-                <button type="button" onClick={() => void copyLane(lane)}>
-                  {copied === lane.id ? 'Copied' : 'Copy summary'}
-                </button>
-              </div>
-            </article>
-          ))}
+                {lane.blocker ? (
+                  <p className="callout blockedCallout">
+                    <strong>Blocked:</strong> {lane.blocker}
+                  </p>
+                ) : null}
+
+                {lane.nextAction ? (
+                  <p className="callout">
+                    <strong>Next:</strong> {lane.nextAction}
+                  </p>
+                ) : null}
+
+                <div className="cardActions">
+                  <Link href={`/worklanes/${lane.id}`}>Details</Link>
+                  <button type="button" onClick={() => void copyLane(lane)}>
+                    {copied === lane.id ? 'Copied' : 'Copy summary'}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
     </main>

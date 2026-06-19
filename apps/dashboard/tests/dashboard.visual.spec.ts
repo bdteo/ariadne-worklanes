@@ -4,7 +4,7 @@ test('renders worklane cards without obvious layout breakage', async ({ page }, 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Agent work, kept visible.' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toBeVisible();
-  await expect(page.getByText('Malformed')).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: 'broken.json' }).getByText('Malformed', { exact: true })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Stale investigation' }).getByText('Stale').first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath(`dashboard-${testInfo.project.name}.png`), fullPage: true });
 
