@@ -14,7 +14,7 @@ import {
   updateWorklane,
   worklaneStatuses,
   writeWorklane,
-} from '@ariadne-worklanes/core';
+} from "../../core/dist/index.js";
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as z from 'zod/v4';
