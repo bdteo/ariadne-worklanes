@@ -4,6 +4,7 @@
   "title": "Archived release",
   "summary": "Completed and archived lane.",
   "scope": "Release",
+  "cwd": "/Users/boris/DevEnvs/Boris/zvg-platform",
   "status": "archived",
   "startedAt": "2026-06-17T08:00:00.000Z",
   "updatedAt": "2026-06-17T10:00:00.000Z",

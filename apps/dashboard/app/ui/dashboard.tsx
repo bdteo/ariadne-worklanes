@@ -10,8 +10,10 @@ import {
   copySummary,
   filterLanes,
   formatDelta,
+  formatCwdLabel,
   formatElapsed,
   groupLanes,
+  laneCwd,
   sortLanes,
   type GroupKey,
   type MetricDelta,
@@ -49,6 +51,7 @@ const filterOptions: { value: StatusFilter; label: string }[] = [
 
 const groupOptions: { value: GroupKey; label: string }[] = [
   { value: 'none', label: 'None' },
+  { value: 'cwd', label: 'CWD' },
   { value: 'workspace', label: 'Workspace' },
   { value: 'owner', label: 'Owner' },
   { value: 'status', label: 'Status' },
@@ -56,10 +59,10 @@ const groupOptions: { value: GroupKey; label: string }[] = [
 ];
 
 const openStatuses = new Set<DashboardLane['status']>(['planned', 'active', 'waiting', 'blocked']);
-const defaultDashboardState: DashboardUrlState = { filter: 'open', sort: 'stale', query: '', compact: false, groupBy: 'none' };
+const defaultDashboardState: DashboardUrlState = { filter: 'open', sort: 'stale', query: '', compact: false, groupBy: 'cwd' };
 const statusFilters = new Set<StatusFilter>(['all', 'open', 'stale', 'blocked', 'complete', 'archived']);
 const sortModes = new Set<SortMode>(['stale', 'updated', 'started', 'progress', 'title']);
-const groupKeys = new Set<GroupKey>(['none', 'workspace', 'owner', 'status', 'scope']);
+const groupKeys = new Set<GroupKey>(['none', 'cwd', 'workspace', 'owner', 'status', 'scope']);
 
 type DashboardUrlState = {
   filter: StatusFilter;
@@ -147,6 +150,8 @@ function laneSignature(lane: DashboardLane): string {
   return JSON.stringify([
     lane.status,
     lane.stale,
+    lane.cwd ?? '',
+    lane.workspace ?? '',
     Math.round(lane.progressPercent),
     lane.progress.current,
     lane.progress.total,
@@ -544,6 +549,7 @@ export function Dashboard() {
                   const progressStyle = { '--progress': `${Math.max(0, Math.min(100, lane.progressPercent))}%` } as CSSProperties;
                   const freshnessStyle = { '--freshness': freshness.ratio } as CSSProperties;
                   const deltas = !compact ? computeMetricDeltas(lane.baseline, lane.metrics).slice(0, 4) : [];
+                  const cwd = laneCwd(lane);
 
                   return (
                     <article
@@ -566,6 +572,13 @@ export function Dashboard() {
                       </div>
 
                       {lane.summary && !compact ? <p className="summary">{lane.summary}</p> : null}
+
+                      {cwd ? (
+                        <p className="cwdLine" title={cwd}>
+                          <span>CWD</span>
+                          <code>{formatCwdLabel(cwd)}</code>
+                        </p>
+                      ) : null}
 
                       <div className="progressRow" style={progressStyle}>
                         <div className="progressCopy">

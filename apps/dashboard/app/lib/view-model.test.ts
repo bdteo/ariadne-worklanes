@@ -6,9 +6,11 @@ import {
   computeMetricDeltas,
   copySummary,
   filterLanes,
+  formatCwdLabel,
   formatDelta,
   formatElapsed,
   groupLanes,
+  laneCwd,
   metricToNumber,
   sortLanes,
 } from './view-model';
@@ -22,6 +24,7 @@ describe('dashboard view model', () => {
     expect(filterLanes(lanes, 'blocked', '')[0]?.id).toBe('blocked');
     expect(filterLanes(lanes, 'archived', '')[0]?.id).toBe('archived');
     expect(filterLanes(lanes, 'all', 'provider')[0]?.id).toBe('blocked');
+    expect(filterLanes([laneWith({ id: 'cwd', cwd: '/tmp/provider-cwd' })], 'all', 'provider-cwd')[0]?.id).toBe('cwd');
   });
 
   it('sorts stale lanes first and produces copy summaries', () => {
@@ -144,6 +147,22 @@ describe('dashboard view model', () => {
       expect(keys).toContain('alpha');
       expect(keys).toContain('beta');
       expect(keys).toContain('unsorted'); // fixture lanes + scope-only have no workspace
+    });
+
+    it('groups by cwd, falling back to workspace for older lanes', () => {
+      const lanes = [
+        laneWith({ id: 'cwd-a', cwd: '/Users/boris/DevEnvs/Boris/Oss/ariadne-worklanes' }),
+        laneWith({ id: 'cwd-b', cwd: '/Users/boris/DevEnvs/Meliora/gethookdai' }),
+        laneWith({ id: 'legacy-workspace', workspace: '/tmp/legacy-workspace' }),
+      ];
+
+      const groups = groupLanes(lanes, 'cwd');
+      const byKey = new Map(groups.map((group) => [group.key, group]));
+
+      expect(byKey.get('/Users/boris/DevEnvs/Boris/Oss/ariadne-worklanes')?.label).toBe('~/DevEnvs/Boris/Oss/ariadne-worklanes');
+      expect(byKey.get('/tmp/legacy-workspace')?.lanes[0]?.id).toBe('legacy-workspace');
+      expect(laneCwd(lanes[2]!)).toBe('/tmp/legacy-workspace');
+      expect(formatCwdLabel('/Users/boris/DevEnvs/Meliora/gethookdai/')).toBe('~/DevEnvs/Meliora/gethookdai');
     });
 
     it('groups by status with prettified labels', () => {

@@ -10,6 +10,7 @@
     "title": { "type": "string", "minLength": 1 },
     "summary": { "type": "string" },
     "scope": { "type": "string" },
+    "cwd": { "type": "string" },
     "status": {
       "type": "string",
       "enum": ["planned", "active", "waiting", "blocked", "complete", "cancelled"]

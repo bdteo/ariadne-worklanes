@@ -22,7 +22,16 @@ describe('worklane core', () => {
     const lane = createWorklane({ title: 'Deploy staging', current: 1, total: 4, unit: 'steps' }, fixedDate());
     expect(lane.schemaVersion).toBe(2);
     expect(lane.id).toBe('deploy-staging');
+    expect(lane.cwd).toBe(process.cwd());
     expect(lane.events[0]?.type).toBe('created');
+  });
+
+  it('accepts explicit cwd context on create and update', () => {
+    const lane = createWorklane({ title: 'Pathful lane', cwd: '/tmp/ariadne-a' }, fixedDate());
+    const updated = updateWorklane(lane, { cwd: '/tmp/ariadne-b' }, new Date('2026-06-19T09:05:00.000Z'));
+
+    expect(lane.cwd).toBe('/tmp/ariadne-a');
+    expect(updated.cwd).toBe('/tmp/ariadne-b');
   });
 
   it('migrates v1 lanes to v2', () => {

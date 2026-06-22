@@ -14,7 +14,7 @@ Good triggers:
 - Multiple agents or terminals may work in parallel.
 - There is a meaningful baseline, target, gap, blocker, or next action worth preserving outside chat history.
 
-When starting such work, call `start_worklane` with a concise title, scope, total/current progress if known, baseline metrics if useful, and the next action.
+When starting such work, call `start_worklane` with a concise title, cwd when known, scope, total/current progress if known, baseline metrics if useful, and the next action.
 
 During the work, call `update_worklane` whenever progress materially changes, a job moves state, or you have a clearer next action. Use `add_milestone` for meaningful phase boundaries, `set_blocker` / `clear_blocker` for blocked state, and `attach_evidence` for PRs, logs, runbooks, screenshots, or proof links.
 

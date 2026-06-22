@@ -4,6 +4,7 @@
   "title": "Provider recovery",
   "summary": "Waiting for a provider cooldown before retrying.",
   "scope": "Recovery",
+  "cwd": "/Users/boris/DevEnvs/Meliora/gethookdai",
   "status": "blocked",
   "startedAt": "2026-06-19T07:00:00.000Z",
   "updatedAt": "2026-06-19T08:00:00.000Z",

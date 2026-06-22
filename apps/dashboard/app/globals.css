@@ -804,6 +804,34 @@ h2 {
   line-height: 1.5;
 }
 
+.cwdLine {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: 6px 8px;
+  background: var(--surface-muted);
+}
+
+.cwdLine span {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cwdLine code {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .progressRow {
   display: flex;
   flex-direction: column;
@@ -879,6 +907,7 @@ dd {
   font-size: 0.78rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .metrics {

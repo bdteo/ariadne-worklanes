@@ -2,7 +2,7 @@
 
 Ariadne Worklanes is a local observability cockpit for long-running agent and ops sessions.
 
-Agents update structured worklane JSON files through an MCP server. A Next.js dashboard reads those files and shows concise cards for progress, elapsed time, stale state, blockers, baseline/current metrics, evidence, and next actions.
+Agents update structured worklane JSON files through an MCP server. A Next.js dashboard reads those files and shows concise cards for cwd, progress, elapsed time, stale state, blockers, baseline/current metrics, evidence, and next actions.
 
 The core idea: when work spans multiple agent sessions, terminals, deploys, queues, and side chats, status should not live only in the latest transcript.
 
@@ -53,6 +53,7 @@ The dashboard includes:
 
 - polling refresh through `/api/worklanes`
 - status/search/sort filters
+- cwd-first visual grouping, with workspace fallback for older lanes
 - stale and blocked state highlighting
 - malformed-file repair cards
 - compact operator mode
@@ -86,7 +87,7 @@ MCP is the authoritative writer. The dashboard only reads files.
 
 Worklanes are local JSON files. The current write schema is v2:
 
-- identity: `id`, `title`, `summary`, `scope`, `owner`, `workspace`, `repo`
+- identity: `id`, `title`, `summary`, `scope`, `owner`, `cwd`, `workspace`, `repo`
 - session context: `threadId`, `sessionId`, `lastActor`
 - state: `status`, `startedAt`, `updatedAt`, `completedAt`, `archivedAt`, `staleAfterMinutes`
 - progress: `current`, `total`, `unit`

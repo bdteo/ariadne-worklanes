@@ -11,6 +11,7 @@
     "summary": { "type": "string" },
     "scope": { "type": "string" },
     "owner": { "type": "string" },
+    "cwd": { "type": "string" },
     "workspace": { "type": "string" },
     "repo": { "type": "string" },
     "threadId": { "type": "string" },

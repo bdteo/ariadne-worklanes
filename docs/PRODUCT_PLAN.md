@@ -41,6 +41,7 @@ The server writes atomically, validates before write, records events/milestones/
 
 - API-backed polling through `/api/worklanes`.
 - Status/search/sort filters.
+- CWD-first visual grouping, with workspace fallback for older lanes.
 - Stale, blocked, archived, and malformed-file states.
 - Compact operator mode.
 - Detail pages with timeline, metrics, evidence, operator summary, and raw JSON.
@@ -70,7 +71,7 @@ Required:
 
 Optional:
 
-- identity/context: `summary`, `scope`, `owner`, `workspace`, `repo`, `threadId`, `sessionId`, `lastActor`
+- identity/context: `summary`, `scope`, `owner`, `cwd`, `workspace`, `repo`, `threadId`, `sessionId`, `lastActor`
 - state: `completedAt`, `archivedAt`, `nextAction`, `blocker`, `warnings`, `notes`
 - operational data: `baseline`, `metrics`, `milestones`, `events`, `evidence`, `links`
 

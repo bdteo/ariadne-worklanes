@@ -3,7 +3,7 @@ import type { Metric, WorklaneEvent } from '@ariadne-worklanes/core';
 
 export type StatusFilter = 'all' | 'open' | 'stale' | 'blocked' | 'complete' | 'archived';
 export type SortMode = 'stale' | 'updated' | 'started' | 'progress' | 'title';
-export type GroupKey = 'none' | 'workspace' | 'owner' | 'status' | 'scope';
+export type GroupKey = 'none' | 'cwd' | 'workspace' | 'owner' | 'status' | 'scope';
 
 export function filterLanes(lanes: DashboardLane[], filter: StatusFilter, query: string): DashboardLane[] {
   const normalizedQuery = query.trim().toLowerCase();
@@ -24,7 +24,7 @@ export function filterLanes(lanes: DashboardLane[], filter: StatusFilter, query:
       return true;
     }
 
-    return [lane.title, lane.summary, lane.scope, lane.repo, lane.owner, lane.nextAction, lane.blocker]
+    return [lane.title, lane.summary, lane.scope, lane.cwd, lane.workspace, lane.repo, lane.owner, lane.nextAction, lane.blocker]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(normalizedQuery));
   });
@@ -237,7 +237,7 @@ export function groupLanes(lanes: DashboardLane[], groupBy: GroupKey): LaneGroup
 
   const buckets = new Map<string, DashboardLane[]>();
   for (const lane of lanes) {
-    const raw = lane[groupBy] ?? lane.scope ?? 'unsorted';
+    const raw = groupValue(lane, groupBy);
     const key = String(raw || 'unsorted');
     const list = buckets.get(key);
     if (list) {
@@ -256,9 +256,32 @@ export function groupLanes(lanes: DashboardLane[], groupBy: GroupKey): LaneGroup
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+export function laneCwd(lane: Pick<DashboardLane, 'cwd' | 'workspace'>): string | undefined {
+  return lane.cwd?.trim() || lane.workspace?.trim() || undefined;
+}
+
+export function formatCwdLabel(value: string): string {
+  const normalized = value.replace(/\/+$/g, '');
+  const homeMatch = normalized.match(/^\/Users\/[^/]+\/(.+)$/);
+  return homeMatch ? `~/${homeMatch[1]}` : normalized;
+}
+
+function groupValue(lane: DashboardLane, groupBy: GroupKey): string {
+  if (groupBy === 'none') {
+    return 'all';
+  }
+  if (groupBy === 'cwd') {
+    return laneCwd(lane) ?? lane.scope ?? 'unsorted';
+  }
+  return String(lane[groupBy] ?? lane.scope ?? 'unsorted');
+}
+
 function groupLabel(key: GroupKey, value: string): string {
   if (value === 'unsorted') {
     return 'Unsorted';
+  }
+  if (key === 'cwd' || key === 'workspace') {
+    return formatCwdLabel(value);
   }
   const prettified = value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (key === 'status') {

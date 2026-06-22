@@ -1,16 +1,24 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig, devices } from '@playwright/test';
+
+const configDir = dirname(fileURLToPath(import.meta.url));
+const fixtureDir = resolve(configDir, 'fixtures/worklanes');
+const visualPort = Number(process.env.ARIADNE_VISUAL_PORT ?? 3738);
+const baseURL = `http://localhost:${visualPort}`;
 
 export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
   use: {
-    baseURL: 'http://localhost:3737',
+    baseURL,
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'ARIADNE_WORKLANES_DIR=./fixtures/worklanes next dev -p 3737',
-    url: 'http://localhost:3737',
-    reuseExistingServer: !process.env.CI,
+    command: `pnpm --filter @ariadne-worklanes/core build && pnpm build && ARIADNE_WORKLANES_DIR="${fixtureDir}" next start -p ${visualPort}`,
+    url: baseURL,
+    reuseExistingServer: false,
     timeout: 30_000,
   },
   projects: [

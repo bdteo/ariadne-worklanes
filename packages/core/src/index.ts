@@ -76,6 +76,7 @@ export const worklaneV2Schema = z
     summary: z.string().optional(),
     scope: z.string().optional(),
     owner: z.string().optional(),
+    cwd: z.string().optional(),
     workspace: z.string().optional(),
     repo: z.string().optional(),
     threadId: z.string().optional(),
@@ -136,6 +137,7 @@ export type CreateWorklaneInput = {
   summary?: string;
   scope?: string;
   owner?: string;
+  cwd?: string;
   workspace?: string;
   repo?: string;
   threadId?: string;
@@ -158,6 +160,7 @@ export type UpdateWorklaneInput = {
   summary?: string;
   scope?: string;
   owner?: string;
+  cwd?: string;
   workspace?: string;
   repo?: string;
   threadId?: string;
@@ -181,6 +184,7 @@ type LegacyWorklaneV1 = {
   title: string;
   summary?: string;
   scope?: string;
+  cwd?: string;
   status: Exclude<WorklaneStatus, 'archived'>;
   startedAt: string;
   updatedAt: string;
@@ -238,6 +242,7 @@ export function createWorklane(input: CreateWorklaneInput, now = new Date()): Wo
     summary: input.summary,
     scope: input.scope,
     owner: input.owner,
+    cwd: normalizeOptionalString(input.cwd) ?? currentCwd(),
     workspace: input.workspace,
     repo: input.repo,
     threadId: input.threadId,
@@ -282,6 +287,7 @@ export function updateWorklane(lane: Worklane, input: UpdateWorklaneInput, now =
     summary: input.summary ?? lane.summary,
     scope: input.scope ?? lane.scope,
     owner: input.owner ?? lane.owner,
+    cwd: normalizeOptionalString(input.cwd) ?? lane.cwd ?? currentCwd(),
     workspace: input.workspace ?? lane.workspace,
     repo: input.repo ?? lane.repo,
     threadId: input.threadId ?? lane.threadId,
@@ -608,6 +614,19 @@ function eventId(prefix: string, index: number, at: string, seed = ''): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function currentCwd(): string | undefined {
+  try {
+    return process.cwd();
+  } catch {
+    return undefined;
+  }
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {

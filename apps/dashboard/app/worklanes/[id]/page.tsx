@@ -7,7 +7,9 @@ import {
   computeFreshness,
   computeMetricDeltas,
   formatDelta,
+  formatCwdLabel,
   formatElapsed,
+  laneCwd,
   type TimelineEntry,
 } from '../../lib/view-model';
 
@@ -45,13 +47,14 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
     const timeline = buildTimeline(lane);
     const deltas = computeMetricDeltas(lane.baseline, lane.metrics);
     const freshness = computeFreshness(lane);
+    const cwd = laneCwd(lane);
 
     return (
       <main className={`shell detailShell ${lane.stale ? 'isStale' : `is-${lane.status}`}`}>
         <header className="detailHeader">
           <div>
             <Link href="/" className="backLink">Back to dashboard</Link>
-            <p className="eyebrow">{lane.scope ?? lane.repo ?? lane.id}</p>
+            <p className="eyebrow">{lane.scope ?? lane.repo ?? cwd ?? lane.id}</p>
             <h1>{lane.title}</h1>
           </div>
           <span className={`status ${lane.stale ? 'stale' : lane.status}`}>{lane.stale ? 'Stale' : lane.status}</span>
@@ -68,6 +71,9 @@ export default async function WorklaneDetail({ params }: { params: Promise<{ id:
             <dl className="facts">
               <div><dt>Elapsed</dt><dd>{formatElapsed(lane.startedAt, lane.completedAt)}</dd></div>
               <div><dt>Freshness</dt><dd className={`freshness freshness-${freshness.level}`}>{freshness.label}</dd></div>
+              {cwd ? <div><dt>CWD</dt><dd>{formatCwdLabel(cwd)}</dd></div> : null}
+              {lane.workspace && lane.workspace !== cwd ? <div><dt>Workspace</dt><dd>{formatCwdLabel(lane.workspace)}</dd></div> : null}
+              {lane.repo ? <div><dt>Repo</dt><dd>{lane.repo}</dd></div> : null}
               <div><dt>Source</dt><dd>{sourceDir}</dd></div>
             </dl>
           </article>

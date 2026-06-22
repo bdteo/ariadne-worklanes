@@ -32,12 +32,14 @@ describe('ariadne MCP server', () => {
     const lane = JSON.parse(await readFile(path.join(dir, 'smoke.json'), 'utf8')) as {
       schemaVersion: number;
       status: string;
+      cwd?: string;
       milestones: unknown[];
       evidence: unknown[];
     };
 
     expect(lane.schemaVersion).toBe(2);
     expect(lane.status).toBe('complete');
+    expect(lane.cwd).toBeTruthy();
     expect(lane.milestones).toHaveLength(1);
     expect(lane.evidence).toHaveLength(1);
     expect(JSON.stringify(listed)).toContain('Smoke test');

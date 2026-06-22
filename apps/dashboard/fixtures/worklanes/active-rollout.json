@@ -5,6 +5,7 @@
   "summary": "Production deploy and smoke test lane.",
   "scope": "Production",
   "owner": "Boris",
+  "cwd": "/Users/boris/DevEnvs/Boris/Oss/ariadne-worklanes",
   "repo": "bdteo/ariadne-worklanes",
   "status": "active",
   "startedAt": "2026-06-19T08:00:00.000Z",

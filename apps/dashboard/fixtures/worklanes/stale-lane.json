@@ -4,6 +4,7 @@
   "title": "Stale investigation",
   "summary": "A lane that should be highlighted as stale.",
   "scope": "Investigation",
+  "cwd": "/Users/boris/DevEnvs/Boris/Oss/ariadne-worklanes",
   "status": "active",
   "startedAt": "2026-06-18T08:00:00.000Z",
   "updatedAt": "2026-06-18T08:05:00.000Z",

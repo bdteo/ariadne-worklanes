@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test('renders worklane cards without obvious layout breakage', async ({ page }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Worklanes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Worklanes', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Group worklanes')).toHaveValue('cwd');
+  await expect(page.getByRole('heading', { name: '~/DevEnvs/Boris/Oss/ariadne-worklanes 2' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Active rollout' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Archived release' })).toHaveCount(0);
   await expect(page.getByRole('article').filter({ hasText: 'broken.json' }).getByText('Malformed', { exact: true })).toBeVisible();
