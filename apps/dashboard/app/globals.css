@@ -518,7 +518,8 @@ h1 {
 }
 
 .toolbar input,
-.toolbar select {
+.toolbar select,
+.dropdownButton {
   min-height: 34px;
   width: auto;
   border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
@@ -542,6 +543,113 @@ h1 {
   background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
+}
+
+.dropdown {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.dropdownButton {
+  display: inline-flex;
+  min-width: 158px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 11px 0 13px;
+  color: var(--text);
+  font-weight: 560;
+  cursor: pointer;
+}
+
+.dropdownButton span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownButton:hover,
+.dropdown.isOpen .dropdownButton {
+  border-color: color-mix(in srgb, var(--line-strong) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-muted) 84%, transparent);
+  color: var(--ink);
+}
+
+.dropdownChevron {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.62;
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.dropdown.isOpen .dropdownChevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: max(100%, 204px);
+  max-width: min(280px, calc(100vw - 24px));
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.dropdownOption {
+  display: flex;
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdownOption:hover,
+.dropdownOption:focus-visible {
+  background: color-mix(in srgb, var(--surface-muted) 88%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.dropdownOption.selected {
+  background: var(--blue);
+  color: white;
+}
+
+.dropdownOption.selected:hover,
+.dropdownOption.selected:focus-visible {
+  background: color-mix(in srgb, var(--blue) 88%, black);
+  color: white;
+}
+
+.dropdownCheck {
+  display: inline-grid;
+  flex: none;
+  width: 14px;
+  place-items: center;
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1;
 }
 
 .themeSwitch {
@@ -1218,6 +1326,9 @@ dd {
   .statChip,
   .toolbar input,
   .toolbar select,
+  .dropdownButton,
+  .dropdownChevron,
+  .dropdownOption,
   .themeSwitch button,
   .cardActions button {
     transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease, color 140ms ease;
@@ -1279,9 +1390,14 @@ dd {
 
   .toolbar input,
   .toolbar select,
+  .dropdown,
   .searchBox input {
     flex: 1 1 auto;
     width: auto;
+  }
+
+  .dropdownButton {
+    width: 100%;
   }
 
   .cardHeader,

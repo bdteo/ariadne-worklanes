@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import {
   buildTimeline,
@@ -49,6 +49,14 @@ const filterOptions: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
 ];
 
+const sortOptions: { value: SortMode; label: string }[] = [
+  { value: 'stale', label: 'Stale first' },
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'started', label: 'Recently started' },
+  { value: 'progress', label: 'Progress' },
+  { value: 'title', label: 'Title' },
+];
+
 const groupOptions: { value: GroupKey; label: string }[] = [
   { value: 'none', label: 'None' },
   { value: 'cwd', label: 'CWD' },
@@ -61,7 +69,7 @@ const groupOptions: { value: GroupKey; label: string }[] = [
 const openStatuses = new Set<DashboardLane['status']>(['planned', 'active', 'waiting', 'blocked']);
 const defaultDashboardState: DashboardUrlState = { filter: 'open', sort: 'stale', query: '', compact: false, groupBy: 'cwd' };
 const statusFilters = new Set<StatusFilter>(['all', 'open', 'stale', 'blocked', 'complete', 'archived']);
-const sortModes = new Set<SortMode>(['stale', 'updated', 'started', 'progress', 'title']);
+const sortModes = new Set<SortMode>(sortOptions.map((option) => option.value));
 const groupKeys = new Set<GroupKey>(['none', 'cwd', 'workspace', 'owner', 'status', 'scope']);
 
 type DashboardUrlState = {
@@ -180,6 +188,7 @@ export function Dashboard() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const cardRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const previousLaneSignature = useRef<Map<string, string>>(new Map());
+  const useDesktopDropdowns = useDesktopDropdownControls();
 
   const { compact, filter, query, sort, groupBy } = urlState;
 
@@ -466,20 +475,22 @@ export function Dashboard() {
               onChange={(event) => updateUrlState({ query: event.target.value })}
             />
           </div>
-          <select aria-label="Sort worklanes" value={sort} onChange={(event) => updateUrlState({ sort: event.target.value as SortMode })}>
-            <option value="stale">Stale first</option>
-            <option value="updated">Recently updated</option>
-            <option value="started">Recently started</option>
-            <option value="progress">Progress</option>
-            <option value="title">Title</option>
-          </select>
-          <select aria-label="Group worklanes" value={groupBy} onChange={(event) => updateUrlState({ groupBy: event.target.value as GroupKey })}>
-            {groupOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-              Group: {option.label}
-              </option>
-            ))}
-          </select>
+          <ToolbarDropdown
+            ariaLabel="Sort worklanes"
+            desktop={useDesktopDropdowns}
+            value={sort}
+            options={sortOptions}
+            onChange={(nextSort) => updateUrlState({ sort: nextSort })}
+          />
+          <ToolbarDropdown
+            ariaLabel="Group worklanes"
+            desktop={useDesktopDropdowns}
+            value={groupBy}
+            options={groupOptions}
+            buttonLabel={(option) => `Group: ${option.label}`}
+            optionLabel={(option) => (option.value === 'none' ? 'No grouping' : option.label)}
+            onChange={(nextGroup) => updateUrlState({ groupBy: nextGroup })}
+          />
           <div className="themeSwitch" role="group" aria-label="Theme mode">
             {themeOptions.map((option) => (
               <button
@@ -670,6 +681,215 @@ function MetricTile({ delta }: { delta: MetricDelta }) {
         <em className="deltaChip">
           {arrow} {formatDelta(delta).replace(/^[+-]?[\d.,]+\s*/, '')}
         </em>
+      ) : null}
+    </div>
+  );
+}
+
+type DropdownOption<T extends string> = {
+  value: T;
+  label: string;
+};
+
+type ToolbarDropdownProps<T extends string> = {
+  ariaLabel: string;
+  buttonLabel?: (option: DropdownOption<T>) => string;
+  desktop: boolean;
+  onChange: (value: T) => void;
+  optionLabel?: (option: DropdownOption<T>) => string;
+  options: DropdownOption<T>[];
+  value: T;
+};
+
+function useDesktopDropdownControls() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const pointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setEnabled(pointerQuery.matches && navigator.maxTouchPoints === 0);
+
+    update();
+    pointerQuery.addEventListener('change', update);
+    return () => pointerQuery.removeEventListener('change', update);
+  }, []);
+
+  return enabled;
+}
+
+function ToolbarDropdown<T extends string>({
+  ariaLabel,
+  buttonLabel = (option) => option.label,
+  desktop,
+  onChange,
+  optionLabel = (option) => option.label,
+  options,
+  value,
+}: ToolbarDropdownProps<T>) {
+  const [open, setOpen] = useState(false);
+  const controlId = useId();
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectedLabel = selectedOption ? buttonLabel(selectedOption) : '';
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      optionRefs.current[selectedIndex]?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, selectedIndex]);
+
+  if (!desktop) {
+    return (
+      <select aria-label={ariaLabel} className="nativeSelect" value={value} onChange={(event) => onChange(event.target.value as T)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {buttonLabel(option)}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  function selectOption(option: DropdownOption<T>) {
+    onChange(option.value);
+    setOpen(false);
+    window.requestAnimationFrame(() => buttonRef.current?.focus());
+  }
+
+  function focusOption(index: number) {
+    const nextIndex = (index + options.length) % options.length;
+    optionRefs.current[nextIndex]?.focus();
+  }
+
+  function handleButtonKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(true);
+    }
+  }
+
+  function handleMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const activeIndex = optionRefs.current.findIndex((node) => node === document.activeElement);
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      buttonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      event.stopPropagation();
+      focusOption(activeIndex >= 0 ? activeIndex + 1 : selectedIndex + 1);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      event.stopPropagation();
+      focusOption(activeIndex >= 0 ? activeIndex - 1 : selectedIndex - 1);
+      return;
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      event.stopPropagation();
+      focusOption(0);
+      return;
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault();
+      event.stopPropagation();
+      focusOption(options.length - 1);
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.stopPropagation();
+    }
+  }
+
+  return (
+    <div
+      className={`dropdown ${open ? 'isOpen' : ''}`}
+      ref={rootRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        aria-controls={`${controlId}-menu`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`${ariaLabel}: ${selectedLabel}`}
+        className="dropdownButton"
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleButtonKeyDown}
+        type="button"
+      >
+        <span>{selectedLabel}</span>
+        <span className="dropdownChevron" aria-hidden="true" />
+      </button>
+
+      {open ? (
+        <div className="dropdownMenu" id={`${controlId}-menu`} role="listbox" aria-label={ariaLabel} onKeyDown={handleMenuKeyDown}>
+          {options.map((option, index) => {
+            const selected = option.value === value;
+
+            return (
+              <button
+                ref={(node) => {
+                  optionRefs.current[index] = node;
+                }}
+                aria-selected={selected}
+                className={`dropdownOption ${selected ? 'selected' : ''}`}
+                key={option.value}
+                onClick={() => selectOption(option)}
+                role="option"
+                tabIndex={-1}
+                type="button"
+              >
+                <span className="dropdownCheck" aria-hidden="true">
+                  {selected ? '✓' : ''}
+                </span>
+                <span>{optionLabel(option)}</span>
+              </button>
+            );
+          })}
+        </div>
       ) : null}
     </div>
   );
