@@ -500,10 +500,6 @@ export function Dashboard() {
         </div>
       </section>
 
-      <p className="kbdHint" aria-hidden="true">
-        <kbd>/</kbd> search · <kbd>1</kbd>–<kbd>6</kbd> tabs · <kbd>j</kbd>/<kbd>k</kbd> cards · <kbd>↵</kbd> open · <kbd>p</kbd> pin
-      </p>
-
       {error ? <p className="errorBanner">{error}</p> : null}
 
       {payload && payload.malformed.length > 0 ? (
