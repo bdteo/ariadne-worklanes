@@ -52,7 +52,7 @@ The server writes atomically, validates before write, records events/milestones/
 - Skill metadata front-loads long-running ops, DevOps, deploy, recovery, investigation, current stats, delta, blocker, and handoff triggers.
 - MCP server instructions reinforce start/update/complete behavior.
 - `hooks/hooks.json` provides trust-reviewed optional hooks for `SessionStart`, `UserPromptSubmit`, and `Stop`.
-- Hooks read local lane files and print nudges only; they never create or update worklanes.
+- Hooks read local lane files and emit Codex hook JSON only; they never create or update worklanes.
 
 ## Worklane Model
 

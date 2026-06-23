@@ -112,7 +112,7 @@ Build before installing or using the plugin locally:
 pnpm build
 ```
 
-Hooks are opt-in/trust-reviewed by Codex. They are nudge-only: session start summarizes active/stale lanes, user prompts that look status-oriented remind the agent to use Ariadne, and stop hooks warn about stale active lanes. Hooks never fabricate progress.
+Hooks are opt-in/trust-reviewed by Codex. They are nudge-only: session start summarizes active/stale lanes, user prompts that look status-oriented remind the agent to use Ariadne, and stop hooks return a safe Codex continue response. Hooks never fabricate progress.
 
 ## QA
 

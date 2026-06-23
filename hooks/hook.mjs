@@ -4,24 +4,30 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-const eventName = process.env.ARIADNE_HOOK_EVENT || 'unknown';
-const worklaneDir = process.env.ARIADNE_WORKLANES_DIR || path.join(homedir(), '.ariadne-worklanes', 'worklanes');
 const input = readStdinJson();
+const eventName = process.env.ARIADNE_HOOK_EVENT || input.hook_event_name || input.event || 'unknown';
+const worklaneDir = process.env.ARIADNE_WORKLANES_DIR || path.join(homedir(), '.ariadne-worklanes', 'worklanes');
 const lanes = readLanes(worklaneDir);
 const active = lanes.filter((lane) => ['planned', 'active', 'waiting', 'blocked'].includes(lane.status));
 const stale = active.filter((lane) => isStale(lane));
 const prompt = promptText(input).toLowerCase();
 
 if (eventName === 'SessionStart' && active.length > 0) {
-  print(`Ariadne: ${active.length} active worklane(s), ${stale.length} stale. Use summarize_worklanes before starting adjacent long-running work.`);
+  emitContext(
+    eventName,
+    `Ariadne: ${active.length} active worklane(s), ${stale.length} stale. Use summarize_worklanes before starting adjacent long-running work.`,
+  );
 }
 
 if (eventName === 'UserPromptSubmit' && shouldNudge(prompt)) {
-  print('Ariadne: this prompt looks status/progress oriented. Use Ariadne worklane tools for baseline, delta, blocker, and next-action updates.');
+  emitContext(
+    eventName,
+    'Ariadne: this prompt looks status/progress oriented. Use Ariadne worklane tools for baseline, delta, blocker, and next-action updates.',
+  );
 }
 
-if (eventName === 'Stop' && stale.length > 0) {
-  print(`Ariadne: ${stale.length} worklane(s) look stale. Before handoff, update_worklane or complete_worklane if the status changed.`);
+if (eventName === 'Stop') {
+  emitContinue();
 }
 
 function readStdinJson() {
@@ -93,6 +99,15 @@ function promptText(value) {
   ].find((candidate) => typeof candidate === 'string' && candidate.trim()) || '';
 }
 
-function print(message) {
-  process.stdout.write(`${message}\n`);
+function emitContext(hookEventName, additionalContext) {
+  process.stdout.write(`${JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName,
+      additionalContext,
+    },
+  })}\n`);
+}
+
+function emitContinue() {
+  process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
 }

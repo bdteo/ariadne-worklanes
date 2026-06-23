@@ -6,6 +6,7 @@ import {
   completeWorklane,
   createWorklane,
   defaultWorklaneDir,
+  isStale,
   listWorklanes,
   metricSchema,
   readWorklane,
@@ -205,6 +206,49 @@ server.registerTool(
     const completed = completeWorklane(lane, note, actor);
     await writeWorklane(worklaneDir, completed);
     return jsonResult({ message: `Completed worklane ${completed.id}`, worklaneDir, lane: completed });
+  },
+);
+
+server.registerTool(
+  'complete_stale_worklanes',
+  {
+    description:
+      'Mark every stale non-terminal worklane complete. Staleness uses each lane\'s staleAfterMinutes (default 60) against updatedAt. Returns the lanes it touched; pass dryRun=true to preview without writing.',
+    inputSchema: z.object({
+      note: z.string().optional(),
+      actor: z.string().optional(),
+      dryRun: z.boolean().default(false),
+    }),
+  },
+  async ({ note, actor, dryRun }) => {
+    const now = new Date();
+    const result = await listWorklanes(worklaneDir);
+    const stale = result.lanes.filter((lane) => isStale(lane, now));
+
+    const touched: { id: string; title: string; status: string; updatedAt: string; progress: { current: number; total: number; unit: string }; }[] = [];
+
+    for (const lane of stale) {
+      touched.push({
+        id: lane.id,
+        title: lane.title,
+        status: lane.status,
+        updatedAt: lane.updatedAt,
+        progress: lane.progress,
+      });
+      if (dryRun) continue;
+      const completed = completeWorklane(lane, note, actor, now);
+      await writeWorklane(worklaneDir, completed);
+    }
+
+    return jsonResult({
+      message: dryRun
+        ? `${stale.length} stale worklane(s) would be completed (dry run)`
+        : `${stale.length} stale worklane(s) completed`,
+      worklaneDir,
+      dryRun,
+      touched,
+      malformed: result.malformed,
+    });
   },
 );
 

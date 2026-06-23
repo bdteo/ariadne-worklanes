@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -43,5 +43,68 @@ describe('ariadne MCP server', () => {
     expect(lane.milestones).toHaveLength(1);
     expect(lane.evidence).toHaveLength(1);
     expect(JSON.stringify(listed)).toContain('Smoke test');
+  });
+
+  it('completes stale worklanes and leaves fresh ones alone', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'ariadne-mcp-'));
+    const stale = {
+      schemaVersion: 2,
+      id: 'stale-lane',
+      title: 'Stale lane',
+      status: 'active',
+      startedAt: '2020-01-01T00:00:00.000Z',
+      updatedAt: '2020-01-01T00:00:00.000Z',
+      staleAfterMinutes: 1,
+      progress: { current: 2, total: 5, unit: 'steps' },
+      baseline: [],
+      metrics: [],
+      milestones: [],
+      events: [],
+      evidence: [],
+      warnings: [],
+      links: [],
+      notes: [],
+    };
+    await writeFile(path.join(dir, 'stale-lane.json'), JSON.stringify(stale));
+
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [path.resolve('dist/index.js')],
+      env: { ...process.env, ARIADNE_WORKLANES_DIR: dir },
+    });
+    const client = new Client({ name: 'ariadne-test-client', version: '0.1.0' });
+    await client.connect(transport);
+
+    // Fresh lane started now should not be completed.
+    await client.callTool({
+      name: 'start_worklane',
+      arguments: { id: 'fresh-lane', title: 'Fresh lane', current: 0, total: 3, unit: 'steps', staleAfterMinutes: 60 },
+    });
+
+    const dryRun = await client.callTool({
+      name: 'complete_stale_worklanes',
+      arguments: { dryRun: true },
+    });
+    const before = JSON.parse(await readFile(path.join(dir, 'stale-lane.json'), 'utf8')) as { status: string };
+    expect(before.status).toBe('active');
+    expect(JSON.stringify(dryRun)).toContain('would be completed');
+
+    const applied = await client.callTool({
+      name: 'complete_stale_worklanes',
+      arguments: { note: 'Bulk cleanup', actor: 'test' },
+    });
+    await client.close();
+
+    const after = JSON.parse(await readFile(path.join(dir, 'stale-lane.json'), 'utf8')) as {
+      status: string;
+      progress: { current: number; total: number };
+    };
+    const freshAfter = JSON.parse(await readFile(path.join(dir, 'fresh-lane.json'), 'utf8')) as { status: string };
+
+    expect(after.status).toBe('complete');
+    expect(after.progress.current).toBe(after.progress.total);
+    expect(freshAfter.status).toBe('active');
+    expect(JSON.stringify(applied)).toContain('stale-lane');
+    expect(JSON.stringify(applied)).not.toContain('fresh-lane');
   });
 });
