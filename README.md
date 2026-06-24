@@ -81,6 +81,8 @@ Tools:
 - `list_worklanes`
 - `summarize_worklanes`
 
+`list_worklanes` and `summarize_worklanes` return active/open lanes by default. Pass `includeCompleted=true` for completed/cancelled lanes and `includeArchived=true` for archived lanes.
+
 MCP is the authoritative writer. The dashboard only reads files.
 
 ## File Model

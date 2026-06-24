@@ -35,6 +35,8 @@ Tools:
 - `list_worklanes`
 - `summarize_worklanes`
 
+`list_worklanes` and `summarize_worklanes` default to active/open lanes only. Completed/cancelled lanes require `includeCompleted=true`; archived lanes require `includeArchived=true`.
+
 The server writes atomically, validates before write, records events/milestones/evidence, and returns clear missing/invalid lane errors.
 
 ### Dashboard

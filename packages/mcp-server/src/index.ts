@@ -273,27 +273,36 @@ server.registerTool(
 server.registerTool(
   'list_worklanes',
   {
-    description: 'List known worklanes and malformed files from the configured worklane directory.',
-    inputSchema: z.object({}),
+    description:
+      'List active/open worklanes and malformed files from the configured worklane directory. Completed/cancelled lanes are hidden by default; pass includeCompleted=true to include them. Archived lanes require includeArchived=true.',
+    inputSchema: z.object({
+      includeCompleted: z.boolean().default(false),
+      includeArchived: z.boolean().default(false),
+    }),
   },
-  async () => {
+  async ({ includeCompleted, includeArchived }) => {
     const result = await listWorklanes(worklaneDir);
-    return jsonResult(result);
+    return jsonResult({
+      ...result,
+      lanes: filterVisibleLanes(result.lanes, { includeCompleted, includeArchived }),
+    });
   },
 );
 
 server.registerTool(
   'summarize_worklanes',
   {
-    description: 'Return concise one-line summaries for all known worklanes.',
+    description:
+      'Return concise one-line summaries for active/open worklanes. Completed/cancelled lanes are hidden by default; pass includeCompleted=true to include them. Archived lanes require includeArchived=true.',
     inputSchema: z.object({
+      includeCompleted: z.boolean().default(false),
       includeArchived: z.boolean().default(false),
     }),
   },
-  async ({ includeArchived }) => {
+  async ({ includeCompleted, includeArchived }) => {
     const result = await listWorklanes(worklaneDir);
     const summaries = result.lanes
-      .filter((lane) => includeArchived || lane.status !== 'archived')
+      .filter((lane) => shouldIncludeLane(lane, { includeCompleted, includeArchived }))
       .map((lane) => summarizeWorklane(lane));
     return jsonResult({ worklaneDir, summaries, malformed: result.malformed });
   },
@@ -308,6 +317,26 @@ function jsonResult(value: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
   };
+}
+
+function filterVisibleLanes<T extends { status: string }>(
+  lanes: T[],
+  options: { includeCompleted: boolean; includeArchived: boolean },
+): T[] {
+  return lanes.filter((lane) => shouldIncludeLane(lane, options));
+}
+
+function shouldIncludeLane(
+  lane: { status: string },
+  options: { includeCompleted: boolean; includeArchived: boolean },
+): boolean {
+  if (lane.status === 'archived') {
+    return options.includeArchived;
+  }
+  if (lane.status === 'complete' || lane.status === 'cancelled') {
+    return options.includeCompleted;
+  }
+  return true;
 }
 
 main().catch((error: unknown) => {

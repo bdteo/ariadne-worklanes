@@ -26,7 +26,10 @@ describe('ariadne MCP server', () => {
     await client.callTool({ name: 'set_blocker', arguments: { id: 'smoke', blocker: 'Intentional test blocker' } });
     await client.callTool({ name: 'clear_blocker', arguments: { id: 'smoke', nextAction: 'Continue smoke test' } });
     await client.callTool({ name: 'complete_worklane', arguments: { id: 'smoke', note: 'Finished' } });
-    const listed = await client.callTool({ name: 'summarize_worklanes', arguments: {} });
+    const defaultList = await client.callTool({ name: 'list_worklanes', arguments: {} });
+    const defaultSummaries = await client.callTool({ name: 'summarize_worklanes', arguments: {} });
+    const completedList = await client.callTool({ name: 'list_worklanes', arguments: { includeCompleted: true } });
+    const completedSummaries = await client.callTool({ name: 'summarize_worklanes', arguments: { includeCompleted: true } });
     await client.close();
 
     const lane = JSON.parse(await readFile(path.join(dir, 'smoke.json'), 'utf8')) as {
@@ -42,7 +45,10 @@ describe('ariadne MCP server', () => {
     expect(lane.cwd).toBeTruthy();
     expect(lane.milestones).toHaveLength(1);
     expect(lane.evidence).toHaveLength(1);
-    expect(JSON.stringify(listed)).toContain('Smoke test');
+    expect(JSON.stringify(defaultList)).not.toContain('Smoke test');
+    expect(JSON.stringify(defaultSummaries)).not.toContain('Smoke test');
+    expect(JSON.stringify(completedList)).toContain('Smoke test');
+    expect(JSON.stringify(completedSummaries)).toContain('Smoke test');
   });
 
   it('completes stale worklanes and leaves fresh ones alone', async () => {
