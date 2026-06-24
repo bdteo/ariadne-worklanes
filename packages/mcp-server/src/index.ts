@@ -48,7 +48,7 @@ server.registerTool(
   'start_worklane',
   {
     description: 'Create or replace a worklane status file for a long-running agent or ops task.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1).optional(),
       title: z.string().min(1),
       summary: z.string().optional(),
@@ -70,7 +70,7 @@ server.registerTool(
       links: z.array(linkSchema).default([]),
       evidence: z.array(evidenceInputSchema).default([]),
       notes: z.array(z.string()).default([]),
-    }),
+    },
   },
   async (input) => {
     const lane = createWorklane(input);
@@ -83,7 +83,7 @@ server.registerTool(
   'update_worklane',
   {
     description: 'Update progress, metrics, blocker, next action, or notes for an existing worklane.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       status: z.enum(worklaneStatuses).optional(),
       summary: z.string().optional(),
@@ -105,7 +105,7 @@ server.registerTool(
       blocker: z.string().optional(),
       note: z.string().optional(),
       warnings: z.array(z.string()).optional(),
-    }),
+    },
   },
   async ({ id, ...input }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -119,13 +119,13 @@ server.registerTool(
   'add_milestone',
   {
     description: 'Append a milestone to a worklane timeline.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       title: z.string().min(1),
       summary: z.string().optional(),
       status: z.enum(['planned', 'active', 'waiting', 'blocked', 'complete', 'cancelled']).default('complete'),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, ...input }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -139,11 +139,11 @@ server.registerTool(
   'set_blocker',
   {
     description: 'Mark a worklane blocked and record the blocker in its timeline.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       blocker: z.string().min(1),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, blocker, actor }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -157,11 +157,11 @@ server.registerTool(
   'clear_blocker',
   {
     description: 'Clear a worklane blocker and optionally update the next action.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       nextAction: z.string().optional(),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, nextAction, actor }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -175,13 +175,13 @@ server.registerTool(
   'attach_evidence',
   {
     description: 'Attach a file, URL, PR, issue, log, screenshot, or runbook reference to a worklane.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       label: z.string().min(1),
       url: z.string().min(1),
       kind: z.enum(['link', 'file', 'pr', 'issue', 'runbook', 'log', 'screenshot', 'other']).default('link'),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, ...input }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -195,11 +195,11 @@ server.registerTool(
   'complete_worklane',
   {
     description: 'Mark a worklane complete and optionally attach a final note.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       note: z.string().optional(),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, note, actor }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -214,11 +214,11 @@ server.registerTool(
   {
     description:
       'Mark every stale non-terminal worklane complete. Staleness uses each lane\'s staleAfterMinutes (default 60) against updatedAt. Returns the lanes it touched; pass dryRun=true to preview without writing.',
-    inputSchema: z.object({
+    inputSchema: {
       note: z.string().optional(),
       actor: z.string().optional(),
       dryRun: z.boolean().default(false),
-    }),
+    },
   },
   async ({ note, actor, dryRun }) => {
     const now = new Date();
@@ -256,11 +256,11 @@ server.registerTool(
   'archive_worklane',
   {
     description: 'Mark a worklane archived while preserving its JSON file and history.',
-    inputSchema: z.object({
+    inputSchema: {
       id: z.string().min(1),
       note: z.string().optional(),
       actor: z.string().optional(),
-    }),
+    },
   },
   async ({ id, note, actor }) => {
     const lane = await readWorklane(worklaneDir, id);
@@ -275,10 +275,10 @@ server.registerTool(
   {
     description:
       'List active/open worklanes and malformed files from the configured worklane directory. Completed/cancelled lanes are hidden by default; pass includeCompleted=true to include them. Archived lanes require includeArchived=true.',
-    inputSchema: z.object({
+    inputSchema: {
       includeCompleted: z.boolean().default(false),
       includeArchived: z.boolean().default(false),
-    }),
+    },
   },
   async ({ includeCompleted, includeArchived }) => {
     const result = await listWorklanes(worklaneDir);
@@ -294,10 +294,10 @@ server.registerTool(
   {
     description:
       'Return concise one-line summaries for active/open worklanes. Completed/cancelled lanes are hidden by default; pass includeCompleted=true to include them. Archived lanes require includeArchived=true.',
-    inputSchema: z.object({
+    inputSchema: {
       includeCompleted: z.boolean().default(false),
       includeArchived: z.boolean().default(false),
-    }),
+    },
   },
   async ({ includeCompleted, includeArchived }) => {
     const result = await listWorklanes(worklaneDir);
