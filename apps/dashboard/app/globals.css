@@ -1202,6 +1202,55 @@ dd {
   background: color-mix(in srgb, var(--surface-muted) 80%, transparent);
 }
 
+.cardActions button:disabled,
+.laneStatusSelect:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.laneStatusControl {
+  display: inline-flex;
+  align-items: center;
+}
+
+.laneStatusSelect {
+  min-height: 32px;
+  max-width: 140px;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  border-radius: 999px;
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%),
+    color-mix(in srgb, var(--surface) 80%, transparent);
+  background-position: calc(100% - 14px) 13px, calc(100% - 9px) 13px, 0 0;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px, auto;
+  color: var(--muted-strong);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 28px 0 12px;
+}
+
+.laneStatusSelect:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--line-strong) 80%, transparent);
+  color: var(--ink);
+  background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+}
+
+.cardActions button.quickComplete {
+  border-color: color-mix(in srgb, var(--blue) 34%, var(--line));
+  background: color-mix(in srgb, var(--blue) 12%, var(--surface));
+  color: color-mix(in srgb, var(--blue) 86%, var(--ink));
+}
+
+.cardActions button.quickComplete:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--blue) 52%, var(--line-strong));
+  background: color-mix(in srgb, var(--blue) 18%, var(--surface-muted));
+  color: var(--blue);
+}
+
 /* ------------------------------------------------------------------ compact mode */
 
 .compactShell .card {
@@ -1425,6 +1474,12 @@ dd {
   .cardActions button {
     width: 100%;
   }
+
+  .cardActionsRight,
+  .laneStatusControl,
+  .laneStatusSelect {
+    width: 100%;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1528,7 +1583,9 @@ dd {
 
 .cardActionsRight {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: flex-end;
 }
 
 /* ------------------------------------------------------------------ freshness ramp */

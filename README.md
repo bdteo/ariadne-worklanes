@@ -60,6 +60,7 @@ The dashboard includes:
 - detail pages at `/worklanes/:id`
 - timeline, evidence, metrics, and raw JSON views
 - copyable one-line operator summaries
+- status changes from each dashboard card, including a one-click complete action
 
 ## Run The MCP Server
 
@@ -83,7 +84,7 @@ Tools:
 
 `list_worklanes` and `summarize_worklanes` return active/open lanes by default. Pass `includeCompleted=true` for completed/cancelled lanes and `includeArchived=true` for archived lanes.
 
-MCP is the authoritative writer. The dashboard only reads files.
+MCP is the main writer for agent sessions. The dashboard can also write explicit operator status changes to the same local JSON files.
 
 ## File Model
 

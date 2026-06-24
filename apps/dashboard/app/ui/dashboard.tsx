@@ -32,6 +32,16 @@ const statusLabels: Record<DashboardLane['status'], string> = {
   archived: 'Archived',
 };
 
+const laneStatusOptions: { value: DashboardLane['status']; label: string }[] = [
+  { value: 'planned', label: statusLabels.planned },
+  { value: 'active', label: statusLabels.active },
+  { value: 'waiting', label: statusLabels.waiting },
+  { value: 'blocked', label: statusLabels.blocked },
+  { value: 'complete', label: statusLabels.complete },
+  { value: 'cancelled', label: statusLabels.cancelled },
+  { value: 'archived', label: statusLabels.archived },
+];
+
 type ThemeMode = 'system' | 'light' | 'dark';
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
@@ -177,6 +187,7 @@ function laneSignature(lane: DashboardLane): string {
 export function Dashboard() {
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState<string>('');
+  const [statusError, setStatusError] = useState<string>('');
   const [urlState, setUrlState] = useState<DashboardUrlState>(defaultDashboardState);
   const [urlStateReady, setUrlStateReady] = useState(false);
   const [copied, setCopied] = useState<string>('');
@@ -184,6 +195,7 @@ export function Dashboard() {
   const [pinned, setPinned] = useState<string>('');
   const [pinnedReady, setPinnedReady] = useState(false);
   const [pulse, setPulse] = useState<Set<string>>(new Set());
+  const [statusPending, setStatusPending] = useState<Record<string, DashboardLane['status']>>({});
   const [activeIndex, setActiveIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const cardRefs = useRef<Array<HTMLAnchorElement | null>>([]);
@@ -331,6 +343,50 @@ export function Dashboard() {
     await navigator.clipboard.writeText(copySummary(lane));
     setCopied(lane.id);
     window.setTimeout(() => setCopied(''), 1400);
+  }
+
+  async function changeLaneStatus(lane: DashboardLane, status: DashboardLane['status']) {
+    if (status === lane.status || statusPending[lane.id]) {
+      return;
+    }
+
+    setStatusError('');
+    setStatusPending((current) => ({ ...current, [lane.id]: status }));
+
+    try {
+      const response = await fetch(`/api/worklanes/${encodeURIComponent(lane.id)}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const result = (await response.json()) as { error?: string; lane?: DashboardLane; sourceDir?: string; generatedAt?: string };
+
+      if (!response.ok || !result.lane) {
+        throw new Error(result.error ?? `Status update failed with ${response.status}`);
+      }
+
+      previousLaneSignature.current.set(result.lane.id, laneSignature(result.lane));
+      setPayload((current) =>
+        current
+          ? {
+              ...current,
+              sourceDir: result.sourceDir ?? current.sourceDir,
+              generatedAt: result.generatedAt ?? current.generatedAt,
+              lanes: current.lanes.map((candidate) => (candidate.id === result.lane!.id ? result.lane! : candidate)),
+            }
+          : current,
+      );
+      setPulse(new Set([result.lane.id]));
+      window.setTimeout(() => setPulse(new Set()), 2200);
+    } catch (updateError) {
+      setStatusError(updateError instanceof Error ? updateError.message : String(updateError));
+    } finally {
+      setStatusPending((current) => {
+        const next = { ...current };
+        delete next[lane.id];
+        return next;
+      });
+    }
   }
 
   function updateUrlState(partial: Partial<DashboardUrlState>) {
@@ -511,7 +567,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      {error ? <p className="errorBanner">{error}</p> : null}
+      {error || statusError ? <p className="errorBanner">{statusError || error}</p> : null}
 
       {payload && payload.malformed.length > 0 ? (
         <section className="malformedGrid" aria-label="Malformed worklane files">
@@ -553,6 +609,9 @@ export function Dashboard() {
                   const isPinned = pinned === lane.id;
                   const isPulsing = pulse.has(lane.id);
                   const isActive = flatIndex === activeIndex;
+                  const pendingStatus = statusPending[lane.id];
+                  const statusControlValue = pendingStatus ?? lane.status;
+                  const isStatusPending = Boolean(pendingStatus);
                   const progressStyle = { '--progress': `${Math.max(0, Math.min(100, lane.progressPercent))}%` } as CSSProperties;
                   const freshnessStyle = { '--freshness': freshness.ratio } as CSSProperties;
                   const deltas = !compact ? computeMetricDeltas(lane.baseline, lane.metrics).slice(0, 4) : [];
@@ -647,6 +706,31 @@ export function Dashboard() {
                           Details
                         </Link>
                         <div className="cardActionsRight">
+                          <div className="laneStatusControl">
+                            <select
+                              aria-label={`Set ${lane.title} status`}
+                              className="laneStatusSelect"
+                              disabled={isStatusPending}
+                              value={statusControlValue}
+                              onChange={(event) => void changeLaneStatus(lane, event.target.value as DashboardLane['status'])}
+                            >
+                              {laneStatusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {lane.status !== 'complete' ? (
+                            <button
+                              type="button"
+                              className="quickComplete"
+                              disabled={isStatusPending}
+                              onClick={() => void changeLaneStatus(lane, 'complete')}
+                            >
+                              {pendingStatus === 'complete' ? 'Completing' : 'Complete'}
+                            </button>
+                          ) : null}
                           <button type="button" aria-pressed={isPinned} onClick={() => setPinned((current) => (current === lane.id ? '' : lane.id))}>
                             {isPinned ? 'Unpin' : 'Pin'}
                           </button>
