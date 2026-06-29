@@ -8,6 +8,10 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter @ariadne-worklanes/core build && pnpm --filter @ariadne-worklanes/dashboard dev",
+    "dashboard:standalone": "scripts/build-dashboard-standalone.sh",
+    "launchd:install": "scripts/install-launch-agent.sh",
+    "launchd:status": "launchctl print gui/$(id -u)/com.bdteo.ariadne-worklanes.dashboard",
+    "launchd:uninstall": "scripts/uninstall-launch-agent.sh",
     "mcp": "pnpm --filter @ariadne-worklanes/mcp-server start",
     "mcp:dev": "pnpm --filter @ariadne-worklanes/mcp-server dev",
     "test": "pnpm build && pnpm -r --if-present test",

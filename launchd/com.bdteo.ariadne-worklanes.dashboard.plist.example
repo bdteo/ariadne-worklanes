@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>__LABEL__</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ARIADNE_ROOT__/scripts/run-dashboard-standalone.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__ARIADNE_ROOT__</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>ARIADNE_ROOT_DIR</key>
+    <string>__ARIADNE_ROOT__</string>
+    <key>ARIADNE_WORKLANES_DIR</key>
+    <string>__HOME__/.ariadne-worklanes/worklanes</string>
+    <key>ARIADNE_DASHBOARD_HOST</key>
+    <string>127.0.0.1</string>
+    <key>ARIADNE_DASHBOARD_PORT</key>
+    <string>3737</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/ariadne-worklanes-dashboard.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/ariadne-worklanes-dashboard.error.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

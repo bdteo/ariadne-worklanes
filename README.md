@@ -43,6 +43,25 @@ pnpm start
 
 The dashboard starts on [http://localhost:3737](http://localhost:3737). When an agent starts it for a long-running handoff, run it detached with stdout/stderr redirected, for example in tmux, so request logs cannot block on an abandoned Codex terminal pipe.
 
+For a persistent macOS user service, build the dashboard as a Next.js standalone production bundle and install the LaunchAgent:
+
+```bash
+pnpm launchd:install
+```
+
+The LaunchAgent starts at login after reboot, keeps the dashboard running on [http://127.0.0.1:3737](http://127.0.0.1:3737), and reads `~/.ariadne-worklanes/worklanes`. It uses the boilerplate in `launchd/com.bdteo.ariadne-worklanes.dashboard.plist.example` and writes the installed plist to `~/Library/LaunchAgents/com.bdteo.ariadne-worklanes.dashboard.plist`.
+
+Useful service commands:
+
+```bash
+pnpm launchd:status
+pnpm launchd:uninstall
+tail -f ~/Library/Logs/ariadne-worklanes-dashboard.log
+tail -f ~/Library/Logs/ariadne-worklanes-dashboard.error.log
+```
+
+This is not `next dev`: the LaunchAgent runs `apps/dashboard/.next/standalone/**/server.js` from the compiled build. The dashboard still needs a local server because it reads and updates worklane JSON files through API routes.
+
 By default it reads worklanes from `~/.ariadne-worklanes/worklanes` when present, then falls back to the repo-local `worklanes/` sample directory. Override the directory with:
 
 ```bash
